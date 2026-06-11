@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   PlusIcon,
   PencilSquareIcon,
@@ -10,11 +10,10 @@ import {
 } from '@heroicons/react/24/outline';
 import { db } from '../database';
 import type { Ingredient } from '../types';
+import { UNIT_OPTIONS } from '../types';
 import { formatCurrency } from '../utils/format';
 import Modal from '../components/ui/Modal';
 import toast from 'react-hot-toast';
-
-const unitOptions = ['pcs', 'gram', 'ml', 'sdt', 'sdm', 'cangkir', 'kg', 'liter'];
 
 export default function IngredientsPage() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
@@ -25,10 +24,19 @@ export default function IngredientsPage() {
 
   // Form state
   const [formName, setFormName] = useState('');
-  const [formPrice, setFormPrice] = useState('');
-  const [formStock, setFormStock] = useState('');
+  const [formPurchaseCost, setFormPurchaseCost] = useState('');
+  const [formPurchaseQuantity, setFormPurchaseQuantity] = useState('');
   const [formUnit, setFormUnit] = useState('pcs');
+  const [formStock, setFormStock] = useState('');
   const [formMinStock, setFormMinStock] = useState('');
+
+  // Auto-calculated unit cost preview
+  const previewUnitCost = useMemo(() => {
+    const cost = Number(formPurchaseCost) || 0;
+    const qty = Number(formPurchaseQuantity) || 0;
+    if (qty <= 0) return 0;
+    return cost / qty;
+  }, [formPurchaseCost, formPurchaseQuantity]);
 
   const loadIngredients = useCallback(async () => {
     try {
@@ -48,9 +56,10 @@ export default function IngredientsPage() {
 
   const resetForm = () => {
     setFormName('');
-    setFormPrice('');
-    setFormStock('');
+    setFormPurchaseCost('');
+    setFormPurchaseQuantity('');
     setFormUnit('pcs');
+    setFormStock('');
     setFormMinStock('');
     setEditingIngredient(null);
   };
@@ -63,9 +72,10 @@ export default function IngredientsPage() {
   const openEditModal = (ingredient: Ingredient) => {
     setEditingIngredient(ingredient);
     setFormName(ingredient.name);
-    setFormPrice(ingredient.purchasePrice.toString());
-    setFormStock(ingredient.stock.toString());
+    setFormPurchaseCost((ingredient.purchaseCost || ingredient.purchasePrice).toString());
+    setFormPurchaseQuantity((ingredient.purchaseQuantity || 1).toString());
     setFormUnit(ingredient.unit);
+    setFormStock(ingredient.stock.toString());
     setFormMinStock(ingredient.minStock.toString());
     setShowModal(true);
   };
@@ -77,17 +87,27 @@ export default function IngredientsPage() {
       toast.error('Nama bahan harus diisi');
       return;
     }
-    const price = Number(formPrice);
-    if (price <= 0) {
-      toast.error('Harga beli harus lebih dari 0');
+    const cost = Number(formPurchaseCost);
+    if (cost <= 0) {
+      toast.error('Masukkan total harga pembelian');
       return;
     }
+    const qty = Number(formPurchaseQuantity);
+    if (qty <= 0) {
+      toast.error('Masukkan jumlah pembelian');
+      return;
+    }
+
+    const unitCost = cost / qty;
 
     try {
       if (editingIngredient?.id) {
         await db.ingredients.update(editingIngredient.id, {
           name: formName.trim(),
-          purchasePrice: price,
+          purchasePrice: unitCost,
+          purchaseCost: cost,
+          purchaseQuantity: qty,
+          unitCost,
           stock: Number(formStock) || 0,
           unit: formUnit,
           minStock: Number(formMinStock) || 0,
@@ -97,7 +117,10 @@ export default function IngredientsPage() {
       } else {
         await db.ingredients.add({
           name: formName.trim(),
-          purchasePrice: price,
+          purchasePrice: unitCost,
+          purchaseCost: cost,
+          purchaseQuantity: qty,
+          unitCost,
           stock: Number(formStock) || 0,
           unit: formUnit,
           minStock: Number(formMinStock) || 0,
@@ -180,6 +203,7 @@ export default function IngredientsPage() {
         <div className="space-y-3">
           {filteredIngredients.map((ingredient, index) => {
             const isLowStock = ingredient.stock <= ingredient.minStock;
+            const unitCost = ingredient.unitCost || ingredient.purchasePrice;
 
             return (
               <motion.div
@@ -204,9 +228,7 @@ export default function IngredientsPage() {
                     >
                       <BeakerIcon
                         className={`w-5 h-5 ${
-                          isLowStock
-                            ? 'text-red-500'
-                            : 'text-blue-500'
+                          isLowStock ? 'text-red-500' : 'text-blue-500'
                         }`}
                       />
                     </div>
@@ -222,14 +244,10 @@ export default function IngredientsPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
                         <span>
                           Stok:{' '}
-                          <strong
-                            className={
-                              isLowStock ? 'text-red-500' : 'text-gray-900 dark:text-white'
-                            }
-                          >
+                          <strong className={isLowStock ? 'text-red-500' : 'text-gray-900 dark:text-white'}>
                             {ingredient.stock} {ingredient.unit}
                           </strong>
                         </span>
@@ -240,8 +258,9 @@ export default function IngredientsPage() {
                           </strong>
                         </span>
                         <span>
-                          Harga: <strong className="text-gray-900 dark:text-white">
-                            {formatCurrency(ingredient.purchasePrice)}/{ingredient.unit}
+                          Harga/satuan:{' '}
+                          <strong className="text-primary-600 dark:text-primary-400">
+                            {formatCurrency(unitCost)}/{ingredient.unit}
                           </strong>
                         </span>
                       </div>
@@ -290,21 +309,35 @@ export default function IngredientsPage() {
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
-                placeholder="Nama bahan"
+                placeholder="Contoh: Kebab Mini Frozen"
                 autoFocus
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Harga Beli (Rp)
+                Total Harga Pembelian (Rp)
               </label>
               <input
                 type="number"
-                value={formPrice}
-                onChange={(e) => setFormPrice(e.target.value)}
+                value={formPurchaseCost}
+                onChange={(e) => setFormPurchaseCost(e.target.value)}
                 className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
-                placeholder="0"
+                placeholder="Contoh: 25000"
+                min="0"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Jumlah Pembelian
+              </label>
+              <input
+                type="number"
+                value={formPurchaseQuantity}
+                onChange={(e) => setFormPurchaseQuantity(e.target.value)}
+                className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+                placeholder="Contoh: 10"
                 min="0"
               />
             </div>
@@ -318,12 +351,24 @@ export default function IngredientsPage() {
                 onChange={(e) => setFormUnit(e.target.value)}
                 className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               >
-                {unitOptions.map((unit) => (
+                {UNIT_OPTIONS.map((unit) => (
                   <option key={unit} value={unit}>
                     {unit}
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Harga per Satuan - Auto-calculated preview */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Harga per Satuan (otomatis)
+              </label>
+              <div className="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-bold text-primary-600 dark:text-primary-400">
+                {previewUnitCost > 0
+                  ? `${formatCurrency(previewUnitCost)} / ${formUnit}`
+                  : '- / ' + formUnit}
+              </div>
             </div>
 
             <div>
@@ -356,6 +401,25 @@ export default function IngredientsPage() {
               />
             </div>
           </div>
+
+          {/* Live preview */}
+          <AnimatePresence>
+            {previewUnitCost > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="p-4 bg-primary-50 dark:bg-primary-950 border border-primary-200 dark:border-primary-800 rounded-xl"
+              >
+                <p className="text-xs text-primary-600 dark:text-primary-400 mb-1 font-medium">
+                  Harga per {formUnit}
+                </p>
+                <p className="text-2xl font-bold text-primary-700 dark:text-primary-300">
+                  {formatCurrency(previewUnitCost)}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="flex gap-3 pt-2">
             <button

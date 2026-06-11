@@ -13,8 +13,11 @@ export interface Ingredient {
   id?: number;
   name: string;
   purchasePrice: number;
-  stock: number;
+  purchaseCost: number;
+  purchaseQuantity: number;
+  unitCost: number;
   unit: string;
+  stock: number;
   minStock: number;
   createdAt: Date;
   updatedAt: Date;
@@ -25,6 +28,7 @@ export interface Recipe {
   productId: number;
   ingredientId: number;
   quantity: number;
+  productionQuantity: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,11 +43,19 @@ export interface Transaction {
   paymentMethod: 'cash' | 'qris' | 'transfer';
   paymentAmount: number;
   changeAmount: number;
-  status: 'completed' | 'cancelled';
+  status: 'draft' | 'queued' | 'completed' | 'deleted';
   itemCount: number;
   notes?: string;
+  queueNumber?: string;
+  deletedFromStatus?: 'draft' | 'queued' | 'completed';
+  deletedAt?: Date;
+  voidAt?: Date;
+  voidReason?: string;
+  restoredAt?: Date;
+  restoredReason?: string;
   createdAt: Date;
 }
+
 
 export interface TransactionItem {
   id?: number;
@@ -87,6 +99,7 @@ export interface Backup {
   transactionItems: TransactionItem[];
   stockMovements: StockMovement[];
   settings: AppSettings[];
+  auditLogs: AuditLog[];
 }
 
 export type ProductCategory = string;
@@ -98,3 +111,20 @@ export interface DailySummary {
   hpp: number;
   transactions: number;
 }
+
+export const UNIT_OPTIONS = [
+  'pcs', 'gram', 'kg', 'ml', 'liter', 'botol', 'sachet', 'pack', 'bungkus', 'porsi',
+] as const;
+
+export type UnitType = typeof UNIT_OPTIONS[number];
+
+export interface AuditLog {
+  id?: number;
+  action: string;
+  transactionId: number;
+  invoiceNumber: string;
+  timestamp: Date;
+  description: string;
+  beforeData?: string;
+  afterData?: string;
+}

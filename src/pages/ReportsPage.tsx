@@ -6,7 +6,7 @@ import {
   PrinterIcon,
 } from '@heroicons/react/24/outline';
 import { db } from '../database';
-import type { Transaction } from '../types';
+import type { Transaction, TransactionItem } from '../types';
 import { formatCurrency, formatDate, getTodayRange, getWeekRange, getMonthRange } from '../utils/format';
 import { exportToExcel, exportToPdf } from '../utils/export';
 import SalesChart from '../components/ui/SalesChart';
@@ -20,6 +20,10 @@ interface ReportData {
   totalHpp: number;
   totalTransactions: number;
   avgTransaction: number;
+}
+
+interface TransactionWithItems extends Transaction {
+  items?: TransactionItem[];
 }
 
 export default function ReportsPage() {
@@ -36,6 +40,7 @@ export default function ReportsPage() {
   const [chartLabels, setChartLabels] = useState<string[]>([]);
   const [chartOmzet, setChartOmzet] = useState<number[]>([]);
   const [chartProfit, setChartProfit] = useState<number[]>([]);
+  const [transactionsWithItems, setTransactionsWithItems] = useState<TransactionWithItems[]>([]);
 
   const loadReport = useCallback(async () => {
     try {
@@ -58,14 +63,22 @@ export default function ReportsPage() {
       const totalTransactions = transactions.length;
       const avgTransaction = totalTransactions > 0 ? totalOmzet / totalTransactions : 0;
 
-      setData({
-        transactions,
-        totalOmzet,
-        totalProfit,
-        totalHpp,
-        totalTransactions,
-        avgTransaction,
-      });
+      setData({ transactions, totalOmzet, totalProfit, totalHpp, totalTransactions, avgTransaction });
+
+      // Load transaction items for each transaction
+      const txIds = transactions.map((t) => t.id!).filter((id) => id !== undefined);
+      const allItems = await db.transactionItems.where('transactionId').anyOf(txIds).toArray();
+      const itemsMap = new Map<number, TransactionItem[]>();
+      for (const item of allItems) {
+        const existing = itemsMap.get(item.transactionId) || [];
+        existing.push(item);
+        itemsMap.set(item.transactionId, existing);
+      }
+      const txWithItems: TransactionWithItems[] = transactions.map((t) => ({
+        ...t,
+        items: itemsMap.get(t.id!) || [],
+      }));
+      setTransactionsWithItems(txWithItems);
 
       // Build chart data
       if (period === 'daily') {
@@ -133,23 +146,49 @@ export default function ReportsPage() {
   }, [loadReport]);
 
   const handleExportExcel = () => {
-    const rows = data.transactions.map((t) => ({
-      Invoice: t.invoiceNumber,
-      Tanggal: formatDate(t.createdAt),
-      Pembayaran: t.paymentMethod === 'cash' ? 'Tunai' : t.paymentMethod === 'qris' ? 'QRIS' : 'Transfer',
-      Total: `Rp${t.totalAmount.toLocaleString('id-ID')}`,
-      HPP: `Rp${t.totalHpp.toLocaleString('id-ID')}`,
-      Profit: `Rp${t.totalProfit.toLocaleString('id-ID')}`,
-      Diskon: t.discount > 0 ? `Rp${t.discount.toLocaleString('id-ID')}` : '-',
-      Item: t.itemCount,
-    }));
+    const rows: any[] = [];
+    for (const t of transactionsWithItems) {
+      if (t.items && t.items.length > 0) {
+        for (const item of t.items) {
+          rows.push({
+            Invoice: t.invoiceNumber,
+            Tanggal: formatDate(t.createdAt),
+            Status: t.status === 'completed' ? 'Completed' : 'Void',
+            Produk: item.productName,
+            Qty: item.quantity,
+            Harga: `Rp${item.price.toLocaleString('id-ID')}`,
+            Subtotal: `Rp${(item.price * item.quantity).toLocaleString('id-ID')}`,
+          });
+        }
+        // Add total row per transaction
+        rows.push({
+          Invoice: '',
+          Tanggal: '',
+          Status: '',
+          Produk: `TOTAL ${t.invoiceNumber}`,
+          Qty: t.itemCount,
+          Harga: '',
+          Subtotal: `Rp${t.totalAmount.toLocaleString('id-ID')}`,
+        });
+      } else {
+        rows.push({
+          Invoice: t.invoiceNumber,
+          Tanggal: formatDate(t.createdAt),
+          Status: t.status === 'completed' ? 'Completed' : 'Void',
+          Produk: '-',
+          Qty: t.itemCount,
+          Harga: '',
+          Subtotal: `Rp${t.totalAmount.toLocaleString('id-ID')}`,
+        });
+      }
+    }
 
     const periodLabel = period === 'daily' ? 'Harian' : period === 'weekly' ? 'Mingguan' : 'Bulanan';
     exportToExcel(rows, `Laporan_${periodLabel}_${new Date().toISOString().slice(0, 10)}`);
   };
 
   const handleExportPdf = () => {
-    const periodLabel = period === 'daily' ? 'Harian' : period === 'weekly' ? 'Mingguan' : 'Bulanan';
+    const periodLabel = period === 'daily' ? 'Hari Ini' : period === 'weekly' ? 'Minggu Ini' : 'Bulan Ini';
     exportToPdf('report-content', `Laporan ${periodLabel}`);
   };
 
@@ -220,12 +259,13 @@ export default function ReportsPage() {
             </div>
           </div>
 
+          {/* Chart - with explicit ID for PDF export */}
           <div className="p-5 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 mb-6">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Grafik Penjualan {periodLabel}</h3>
             <SalesChart labels={chartLabels} omzetData={chartOmzet} profitData={chartProfit} />
           </div>
 
-          {data.transactions.length > 0 ? (
+          {transactionsWithItems.length > 0 ? (
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -233,18 +273,30 @@ export default function ReportsPage() {
                     <tr className="border-b border-gray-200 dark:border-gray-800">
                       <th className="text-left p-3 font-medium text-gray-500 dark:text-gray-400 text-xs uppercase">Invoice</th>
                       <th className="text-left p-3 font-medium text-gray-500 dark:text-gray-400 text-xs uppercase">Waktu</th>
-                      <th className="text-left p-3 font-medium text-gray-500 dark:text-gray-400 text-xs uppercase">Pembayaran</th>
+                      <th className="text-left p-3 font-medium text-gray-500 dark:text-gray-400 text-xs uppercase">Daftar Produk</th>
                       <th className="text-right p-3 font-medium text-gray-500 dark:text-gray-400 text-xs uppercase">Total</th>
                       <th className="text-right p-3 font-medium text-gray-500 dark:text-gray-400 text-xs uppercase">HPP</th>
                       <th className="text-right p-3 font-medium text-gray-500 dark:text-gray-400 text-xs uppercase">Profit</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.transactions.map((t) => (
+                    {transactionsWithItems.map((t) => (
                       <tr key={t.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                         <td className="p-3 text-gray-900 dark:text-white font-medium">{t.invoiceNumber}</td>
                         <td className="p-3 text-gray-500 dark:text-gray-400">{new Date(t.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</td>
-                        <td className="p-3 text-gray-500 dark:text-gray-400 capitalize">{t.paymentMethod === 'cash' ? 'Tunai' : t.paymentMethod === 'qris' ? 'QRIS' : 'Transfer'}</td>
+                        <td className="p-3 text-gray-700 dark:text-gray-300">
+                          {t.items && t.items.length > 0 ? (
+                            <div className="space-y-0.5">
+                              {t.items.map((item, i) => (
+                                <p key={i} className="text-xs">
+                                  {item.productName} x{item.quantity}
+                                </p>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
                         <td className="p-3 text-right text-gray-900 dark:text-white font-medium">{formatCurrency(t.totalAmount)}</td>
                         <td className="p-3 text-right text-orange-600">{formatCurrency(t.totalHpp)}</td>
                         <td className="p-3 text-right text-green-600 font-medium">{formatCurrency(t.totalProfit)}</td>

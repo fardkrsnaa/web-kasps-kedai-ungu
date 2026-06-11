@@ -15,7 +15,7 @@ export default function BackupPage() {
   const handleBackup = async () => {
     setLoading(true);
     try {
-      const [products, ingredients, recipes, transactions, transactionItems, stockMovements, settings] =
+      const [products, ingredients, recipes, transactions, transactionItems, stockMovements, settings, auditLogs] =
         await Promise.all([
           db.products.toArray(),
           db.ingredients.toArray(),
@@ -24,10 +24,11 @@ export default function BackupPage() {
           db.transactionItems.toArray(),
           db.stockMovements.toArray(),
           db.settings.toArray(),
+          db.auditLogs.toArray(),
         ]);
 
       const backup: Backup = {
-        version: '1.0.0',
+        version: '1.1.0',
         exportedAt: new Date().toISOString(),
         products,
         ingredients,
@@ -35,6 +36,7 @@ export default function BackupPage() {
         transactions,
         transactionItems,
         stockMovements,
+        auditLogs,
         settings,
       };
 
@@ -92,6 +94,7 @@ export default function BackupPage() {
           db.transactionItems.clear(),
           db.stockMovements.clear(),
           db.settings.clear(),
+          db.auditLogs.clear(),
         ]);
 
         // Restore data
@@ -103,6 +106,7 @@ export default function BackupPage() {
           db.transactionItems.bulkAdd(backup.transactionItems),
           db.stockMovements.bulkAdd(backup.stockMovements),
           db.settings.bulkAdd(backup.settings),
+          ...(backup.auditLogs ? [db.auditLogs.bulkAdd(backup.auditLogs)] : []),
         ]);
 
         toast.success('Restore berhasil! Silakan muat ulang halaman.');

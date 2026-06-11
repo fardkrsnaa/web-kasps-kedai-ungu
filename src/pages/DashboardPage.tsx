@@ -8,7 +8,7 @@ import {
   ArrowTrendingUpIcon,
 } from '@heroicons/react/24/outline';
 import { useDashboard } from '../hooks/useDashboard';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatDateTime } from '../utils/format';
 import SalesChart from '../components/ui/SalesChart';
 
 type Period = 'weekly' | 'monthly';
@@ -206,6 +206,80 @@ export default function DashboardPage() {
           )}
         </motion.div>
       </div>
+
+      {/* Recent Transactions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.4 }}
+        className="mt-6 p-5 bg-white rounded-xl shadow-sm border border-gray-100 dark:bg-gray-900 dark:border-gray-800"
+      >
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Transaksi Terbaru
+        </h3>
+
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        ) : data.recentTransactions.length === 0 ? (
+          <div className="flex items-center justify-center h-32 text-gray-400 dark:text-gray-500">
+            <p className="text-sm">Belum ada transaksi</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {data.recentTransactions.map((tx) => (
+              <div
+                key={tx.id}
+                className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {tx.invoiceNumber}
+                    </p>
+                    <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-medium rounded-full ${
+                      tx.status === 'completed'
+                        ? 'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900'
+                        : 'text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-900'
+                    }`}>
+                      {tx.status === 'completed' ? '✓' : 'VOID'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                    {formatDateTime(tx.createdAt)}
+                  </p>
+                  {/* Product list */}
+                  {tx.items.length > 0 && (
+                    <div className="mt-1">
+                      {tx.items.slice(0, 3).map((item, i) => (
+                        <p key={i} className="text-[11px] text-gray-600 dark:text-gray-400">
+                          {item.productName} x{item.quantity}
+                        </p>
+                      ))}
+                      {tx.items.length > 3 && (
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                          +{tx.items.length - 3} lainnya
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(tx.totalAmount)}
+                  </p>
+                  <p className={`text-[11px] ${tx.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {tx.totalProfit >= 0 ? '+' : ''}{formatCurrency(tx.totalProfit)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </motion.div>
     </motion.div>
   );
 }

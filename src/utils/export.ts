@@ -74,6 +74,32 @@ export function exportToPdf(elementId: string, title: string): void {
   const element = document.getElementById(elementId);
   if (!element) return;
 
+  // Capture chart canvases as base64 images before printing
+  const canvasImages: string[] = [];
+  const canvases = element.querySelectorAll('canvas');
+  canvases.forEach((canvas) => {
+    try {
+      const dataUrl = canvas.toDataURL('image/png');
+      canvasImages.push(dataUrl);
+    } catch {
+      // Canvas might be tainted or empty
+    }
+  });
+
+  // Clone the element content to replace canvas with images
+  const clonedContent = element.cloneNode(true) as HTMLElement;
+  const clonedCanvases = clonedContent.querySelectorAll('canvas');
+  clonedCanvases.forEach((canvas, index) => {
+    if (canvasImages[index]) {
+      const img = document.createElement('img');
+      img.src = canvasImages[index];
+      img.style.width = '100%';
+      img.style.height = 'auto';
+      img.style.maxHeight = '300px';
+      canvas.parentNode?.replaceChild(img, canvas);
+    }
+  });
+
   const styles = Array.from(document.styleSheets)
     .map((sheet) => {
       try {
@@ -86,7 +112,7 @@ export function exportToPdf(elementId: string, title: string): void {
     })
     .join('');
 
-  const content = element.innerHTML;
+  const content = clonedContent.innerHTML;
 
   printWindow.document.write(`
     <!DOCTYPE html>
@@ -102,6 +128,7 @@ export function exportToPdf(elementId: string, title: string): void {
           @page { margin: 15mm; }
         }
         .print-only { display: none; }
+        img { max-width: 100%; height: auto; }
       </style>
     </head>
     <body>
@@ -119,5 +146,5 @@ export function exportToPdf(elementId: string, title: string): void {
   setTimeout(() => {
     printWindow.print();
     printWindow.close();
-  }, 500);
+  }, 800);
 }

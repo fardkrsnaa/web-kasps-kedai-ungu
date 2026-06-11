@@ -10,15 +10,13 @@ import {
   QrCodeIcon,
   ArrowPathIcon,
   CheckCircleIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 import { db } from '../database';
 import type { Product } from '../types';
 import { formatCurrency } from '../utils/format';
-import {
-  processCheckout,
-  checkLowStockIngredients,
-  type CartItem,
-} from '../services/transactionService';
+import { processCheckout, checkLowStockIngredients, type CartItem, saveToQueue } from '../services/transactionService';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Modal from '../components/ui/Modal';
 import toast from 'react-hot-toast';
 
@@ -37,6 +35,52 @@ export default function PosPage() {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastInvoice, setLastInvoice] = useState('');
+  const [lastReceiptData, setLastReceiptData] = useState<{
+    items: typeof cart;
+    total: number;
+    discount: number;
+    paymentMethod: typeof paymentMethod;
+    paymentAmount: number;
+    change: number;
+  } | null>(null);
+
+  // Queue state
+  const [queueId, setQueueId] = useState<number | undefined>(undefined);
+  const [_queueNumber, setQueueNumber] = useState<string | undefined>(undefined);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadQueueTransaction = async () => {
+      const txId = location.state?.transactionId;
+      if (!txId) return;
+
+      try {
+        const tx = await db.transactions.get(txId);
+        if (tx && tx.status === 'queued') {
+          const items = await db.transactionItems.where('transactionId').equals(txId).toArray();
+          if (items.length > 0) {
+            setCart(items.map(i => ({
+              productId: i.productId,
+              productName: i.productName,
+              price: i.price,
+              quantity: i.quantity,
+              hpp: i.hpp,
+              notes: i.notes
+            })));
+            setQueueId(txId);
+            setQueueNumber(tx.queueNumber);
+            setDiscount(tx.discount);
+            navigate('/pos', { replace: true }); // Clear state
+            toast.success(`Memuat antrean ${tx.queueNumber}`);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load queue transaction', err);
+      }
+    };
+    loadQueueTransaction();
+  }, [location, navigate]);
 
   const loadProducts = useCallback(async () => {
     try {
@@ -130,11 +174,37 @@ export default function PosPage() {
         discount,
         paymentMethod,
         paymentAmount: paymentMethod === 'cash' ? Number(paymentAmount || 0) : finalTotal,
+        transactionId: queueId,
       });
 
       setLastInvoice(result.invoiceNumber);
       setShowCheckout(false);
+      
+      // Save transaction snapshot BEFORE clearing cart
+      setLastReceiptData({
+        items: [...cart], // Copy cart array
+        total: finalTotal,
+        discount: discount,
+        paymentMethod: paymentMethod,
+        paymentAmount: paymentMethod === 'cash' ? Number(paymentAmount || 0) : finalTotal,
+        change: changeAmount
+      });
+      
       setShowReceipt(true);
+      
+      // Clear queue state after payment
+      setQueueId(undefined);
+      setQueueNumber(undefined);
+      
+      // Reset cart etc.
+      setCart([]);
+      setDiscount(0);
+      setPaymentMethod('cash');
+      setPaymentAmount('');
+      setProcessingPayment(false);
+      
+      // Load products again maybe refresh
+      await loadProducts();
 
       // Check low stock
       const lowStock = await checkLowStockIngredients();
@@ -327,20 +397,46 @@ export default function PosPage() {
             </span>
           </div>
 
-          <button
-            onClick={() => {
-              if (cart.length === 0) {
-                toast.error('Keranjang kosong');
-                return;
-              }
-              setShowCheckout(true);
-            }}
-            disabled={cart.length === 0}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
-          >
-            <BanknotesIcon className="w-5 h-5" />
-            Bayar ({cartItemCount} item)
-          </button>
+            {/* Save to Queue Button */}
+            <button
+              onClick={async () => {
+                if (cart.length === 0) {
+                  toast.error('Keranjang kosong');
+                  return;
+                }
+                try {
+                  const result = await saveToQueue({
+                    items: cart,
+                    discount,
+                    transactionId: queueId,
+                  });
+                  setQueueId(undefined);
+                  setQueueNumber(result.queueNumber);
+                  toast.success(`Antrean ${result.queueNumber} disimpan`);
+                } catch (err: any) {
+                  toast.error(err.message || 'Gagal menyimpan antrean');
+                }
+              }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
+            >
+              <ClockIcon className="w-5 h-5" />
+              Simpan Antrean
+            </button>
+            {/* Bayar Button */}
+            <button
+              onClick={() => {
+                if (cart.length === 0) {
+                  toast.error('Keranjang kosong');
+                  return;
+                }
+                setShowCheckout(true);
+              }}
+              disabled={cart.length === 0}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+            >
+              <BanknotesIcon className="w-5 h-5" />
+              Bayar ({cartItemCount} item)
+            </button>
         </div>
       </div>
 
@@ -504,14 +600,13 @@ export default function PosPage() {
         isOpen={showReceipt}
         onClose={resetPos}
         title="Transaksi Berhasil"
-        size="sm"
+        size="md"
       >
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mx-auto">
-            <CheckCircleIcon className="w-8 h-8 text-green-600 dark:text-green-400" />
-          </div>
-
-          <div>
+        <div className="space-y-4">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mx-auto mb-3">
+              <CheckCircleIcon className="w-8 h-8 text-green-600 dark:text-green-400" />
+            </div>
             <p className="text-lg font-bold text-gray-900 dark:text-white">
               Pembayaran Berhasil
             </p>
@@ -520,28 +615,62 @@ export default function PosPage() {
             </p>
           </div>
 
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400">Total</span>
-              <span className="font-bold text-gray-900 dark:text-white">
-                {formatCurrency(finalTotal)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400">Pembayaran</span>
-              <span className="font-medium text-gray-900 dark:text-white">
-                {paymentMethod === 'cash' ? 'Tunai' : paymentMethod === 'qris' ? 'QRIS' : 'Transfer'}
-              </span>
-            </div>
-            {paymentMethod === 'cash' && (
-              <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">Kembalian</span>
-                <span className="font-medium text-green-600">
-                  {formatCurrency(changeAmount)}
-                </span>
+          {/* Product Details */}
+          {lastReceiptData && (
+            <>
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 dark:bg-gray-800 text-xs">
+                      <th className="text-left p-2 font-medium text-gray-500 dark:text-gray-400">Produk</th>
+                      <th className="text-center p-2 font-medium text-gray-500 dark:text-gray-400">Qty</th>
+                      <th className="text-right p-2 font-medium text-gray-500 dark:text-gray-400">Harga</th>
+                      <th className="text-right p-2 font-medium text-gray-500 dark:text-gray-400">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lastReceiptData.items.map((item) => (
+                      <tr key={item.productId} className="border-t border-gray-100 dark:border-gray-700">
+                        <td className="p-2 text-gray-900 dark:text-white">{item.productName}</td>
+                        <td className="p-2 text-center text-gray-700 dark:text-gray-300">{item.quantity}</td>
+                        <td className="p-2 text-right text-gray-700 dark:text-gray-300">{formatCurrency(item.price)}</td>
+                        <td className="p-2 text-right font-medium text-gray-900 dark:text-white">{formatCurrency(item.price * item.quantity)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
-          </div>
+
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2 text-sm">
+                {lastReceiptData.discount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Diskon</span>
+                    <span className="font-medium text-red-500">-{formatCurrency(lastReceiptData.discount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-500 dark:text-gray-400">Total</span>
+                  <span className="font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(lastReceiptData.total)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500 dark:text-gray-400">Pembayaran</span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {lastReceiptData.paymentMethod === 'cash' ? 'Tunai' : lastReceiptData.paymentMethod === 'qris' ? 'QRIS' : 'Transfer'}
+                  </span>
+                </div>
+                {lastReceiptData.paymentMethod === 'cash' && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Kembalian</span>
+                    <span className="font-medium text-green-600">
+                      {formatCurrency(lastReceiptData.change)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           <button
             onClick={resetPos}

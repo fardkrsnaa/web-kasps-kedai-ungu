@@ -40,17 +40,17 @@ export default function Modal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2 }}
-            className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 max-h-[90vh] overflow-y-auto`}
+            className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto`}
           >
-            <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-800">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                 {title}
               </h2>
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               >
-                <XMarkIcon className="w-5 h-5 text-gray-500" />
+                <XMarkIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
               </button>
             </div>
             <div className="p-5">{children}</div>
@@ -59,4 +59,4 @@ export default function Modal({
       )}
     </AnimatePresence>
   );
-}
+}

@@ -11,7 +11,7 @@ export default function AppLayout() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0 bg-slate-50 dark:bg-slate-900">
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">

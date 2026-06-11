@@ -70,14 +70,14 @@ export default function SalesChart({
                 boxWidth: 12,
                 padding: 16,
                 font: { size: 11 },
-                color: isDark ? '#9ca3af' : '#6b7280',
+                color: isDark ? '#cbd5e1' : '#64748b',
               },
             },
             tooltip: {
-              backgroundColor: isDark ? '#1f2937' : '#ffffff',
-              titleColor: isDark ? '#f9fafb' : '#111827',
-              bodyColor: isDark ? '#d1d5db' : '#374151',
-              borderColor: isDark ? '#374151' : '#e5e7eb',
+              backgroundColor: isDark ? '#1e293b' : '#f8fafc',
+              titleColor: isDark ? '#f1f5f9' : '#0f172a',
+              bodyColor: isDark ? '#cbd5e1' : '#334155',
+              borderColor: isDark ? '#334155' : '#e2e8f0',
               borderWidth: 1,
               padding: 12,
               cornerRadius: 8,
@@ -95,15 +95,15 @@ export default function SalesChart({
               grid: { display: false },
               ticks: {
                 font: { size: 10 },
-                color: isDark ? '#9ca3af' : '#6b7280',
+                color: isDark ? '#cbd5e1' : '#64748b',
               },
             },
             y: {
               beginAtZero: true,
-              grid: { color: isDark ? '#374151' : '#f3f4f6' },
+              grid: { color: isDark ? '#334155' : '#f1f5f9' },
               ticks: {
                 font: { size: 10 },
-                color: isDark ? '#9ca3af' : '#6b7280',
+                color: isDark ? '#cbd5e1' : '#64748b',
                 callback: function (value) {
                   if (typeof value === 'number') {
                     if (value >= 1000000) return (value / 1000000).toFixed(1) + 'jt';
@@ -130,7 +130,7 @@ export default function SalesChart({
 
   if (labels.length === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 dark:text-gray-500">
+      <div className="flex items-center justify-center h-48 text-slate-600 dark:text-slate-400">
         <p className="text-sm">Belum ada data penjualan</p>
       </div>
     );

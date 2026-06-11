@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../database';
 import { getTodayRange, getWeekRange, getMonthRange } from '../utils/format';
+import type { Transaction, TransactionItem } from '../types';
 
 interface DashboardData {
   todayOmzet: number;
@@ -10,6 +11,7 @@ interface DashboardData {
   topProducts: { name: string; quantity: number; total: number }[];
   weeklySales: { date: string; omzet: number; profit: number }[];
   monthlySales: { date: string; omzet: number; profit: number }[];
+  recentTransactions: (Transaction & { items: TransactionItem[] })[];
 }
 
 export function useDashboard() {
@@ -21,6 +23,7 @@ export function useDashboard() {
     topProducts: [],
     weeklySales: [],
     monthlySales: [],
+    recentTransactions: [],
   });
   const [loading, setLoading] = useState(true);
 
@@ -41,6 +44,23 @@ export function useDashboard() {
       const todayOmzet = todayTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
       const todayProfit = todayTransactions.reduce((sum, t) => sum + t.totalProfit, 0);
       const todayHpp = todayTransactions.reduce((sum, t) => sum + t.totalHpp, 0);
+
+      // Get recent transactions (last 5)
+      const recentTransactions = await db.transactions
+        .orderBy('createdAt')
+        .reverse()
+        .limit(5)
+        .toArray();
+
+      // Load items for recent transactions
+      const recentWithItems: (Transaction & { items: TransactionItem[] })[] = [];
+      for (const tx of recentTransactions) {
+        const items = await db.transactionItems
+          .where('transactionId')
+          .equals(tx.id as number)
+          .toArray();
+        recentWithItems.push({ ...tx, items });
+      }
 
       // Get weekly transactions
       const weekTransactions = await db.transactions
@@ -135,6 +155,7 @@ export function useDashboard() {
         topProducts,
         weeklySales,
         monthlySales,
+        recentTransactions: recentWithItems,
       });
     } catch (error) {
       console.error('Failed to load dashboard:', error);
