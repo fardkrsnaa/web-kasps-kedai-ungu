@@ -4,7 +4,6 @@ import DashboardPage from '../pages/DashboardPage';
 import PosPage from '../pages/PosPage';
 import ProductsPage from '../pages/ProductsPage';
 import IngredientsPage from '../pages/IngredientsPage';
-import RecipesPage from '../pages/RecipesPage';
 import HistoryPage from '../pages/HistoryPage';
 import AuditLogPage from '../pages/AuditLogPage';
 import TrashPage from '../pages/TrashPage';
@@ -22,7 +21,6 @@ export const router = createBrowserRouter([
       { path: '/pos', element: <PosPage /> },
       { path: '/products', element: <ProductsPage /> },
       { path: '/ingredients', element: <IngredientsPage /> },
-      { path: '/recipes', element: <RecipesPage /> },
       { path: '/queue', element: <QueuePage /> },
       { path: '/history', element: <HistoryPage /> },
       { path: '/audit-log', element: <AuditLogPage /> },

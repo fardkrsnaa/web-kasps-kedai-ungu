@@ -47,6 +47,7 @@ export default function PosPage() {
   // Queue state
   const [queueId, setQueueId] = useState<number | undefined>(undefined);
   const [_queueNumber, setQueueNumber] = useState<string | undefined>(undefined);
+  const [showQueueConfirmModal, setShowQueueConfirmModal] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -65,14 +66,38 @@ export default function PosPage() {
               productName: i.productName,
               price: i.price,
               quantity: i.quantity,
-              hpp: i.hpp,
               notes: i.notes
             })));
-            setQueueId(txId);
-            setQueueNumber(tx.queueNumber);
-            setDiscount(tx.discount);
-            navigate('/pos', { replace: true }); // Clear state
-            toast.success(`Memuat antrean ${tx.queueNumber}`);
+            
+            // Apply other state
+            setDiscount(tx.discount || 0);
+
+            // Delete the old queue from database completely
+            await db.transactionItems.where('transactionId').equals(txId).delete();
+            await db.transactions.delete(txId);
+            
+            // Add audit log
+            const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            await db.auditLogs.add({
+              action: 'BUKA_ANTREAN',
+              transactionId: 0,
+              invoiceNumber: tx.invoiceNumber,
+              timestamp: new Date(),
+              description: [
+                `Buka Antrean`,
+                `No Antrean: ${tx.queueNumber}`,
+                `\nItem: ${items.length}`,
+                `Total: ${formatCurrency(tx.totalAmount)}`,
+                `\nTanggal:\n${dateStr}`
+              ].join('\n'),
+            });
+
+            // Do not keep queue ID so if saved again, it creates a new queue
+            setQueueId(undefined);
+            setQueueNumber(undefined);
+            
+            navigate('/pos', { replace: true }); // Clear route state
+            toast.success(`Antrean ${tx.queueNumber} dimuat ke keranjang`);
           }
         }
       } catch (err) {
@@ -131,7 +156,6 @@ export default function PosPage() {
           productName: product.name,
           price: product.price,
           quantity: 1,
-          hpp: 0,
         },
       ];
     });
@@ -227,9 +251,52 @@ export default function PosPage() {
       }
     } catch (error) {
       console.error('Checkout failed:', error);
-      toast.error('Gagal memproses transaksi');
+      const message = error instanceof Error ? error.message : 'Gagal memproses transaksi';
+      toast.error(message);
     } finally {
       setProcessingPayment(false);
+    }
+  };
+
+  const handleSaveQueue = async () => {
+    if (cart.length === 0) {
+      toast.error('Keranjang kosong');
+      return;
+    }
+    try {
+      const result = await saveToQueue({
+        items: cart,
+        discount,
+        transactionId: queueId,
+      });
+
+      const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      await db.auditLogs.add({
+        action: 'TAMBAH_ANTREAN',
+        transactionId: queueId || 0,
+        invoiceNumber: result.invoiceNumber || '',
+        timestamp: new Date(),
+        description: [
+          `Simpan Antrean`,
+          `No Antrean: ${result.queueNumber}`,
+          `\nItem: ${cart.length}`,
+          `Total: ${formatCurrency(finalTotal)}`,
+          `\nTanggal:\n${dateStr}`
+        ].join('\n'),
+      });
+
+      setQueueId(undefined);
+      setQueueNumber(result.queueNumber);
+      toast.success(`Antrean ${result.queueNumber} disimpan`);
+      
+      // Clear Cart entirely
+      setCart([]);
+      setDiscount(0);
+      setPaymentMethod('cash');
+      setPaymentAmount('');
+      setShowQueueConfirmModal(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal menyimpan antrean');
     }
   };
 
@@ -399,23 +466,12 @@ export default function PosPage() {
 
             {/* Save to Queue Button */}
             <button
-              onClick={async () => {
+              onClick={() => {
                 if (cart.length === 0) {
                   toast.error('Keranjang kosong');
                   return;
                 }
-                try {
-                  const result = await saveToQueue({
-                    items: cart,
-                    discount,
-                    transactionId: queueId,
-                  });
-                  setQueueId(undefined);
-                  setQueueNumber(result.queueNumber);
-                  toast.success(`Antrean ${result.queueNumber} disimpan`);
-                } catch (err: any) {
-                  toast.error(err.message || 'Gagal menyimpan antrean');
-                }
+                setShowQueueConfirmModal(true);
               }}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
             >
@@ -678,6 +734,75 @@ export default function PosPage() {
           >
             Transaksi Baru
           </button>
+        </div>
+      </Modal>
+
+      {/* Queue Confirmation Modal */}
+      <Modal
+        isOpen={showQueueConfirmModal}
+        onClose={() => setShowQueueConfirmModal(false)}
+        title="Simpan ke Antrean?"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Berikut adalah rincian pesanan yang akan dimasukkan ke antrean:
+          </p>
+
+          <div className="border border-gray-100 dark:border-gray-800 rounded-lg overflow-hidden max-h-48 overflow-y-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 uppercase font-semibold">
+                <tr>
+                  <th className="p-2.5">Produk</th>
+                  <th className="p-2.5 text-center">Qty</th>
+                  <th className="p-2.5 text-right">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {cart.map((item) => (
+                  <tr key={item.productId} className="text-gray-700 dark:text-gray-300">
+                    <td className="p-2.5 font-medium">{item.productName}</td>
+                    <td className="p-2.5 text-center">{item.quantity}</td>
+                    <td className="p-2.5 text-right">{formatCurrency(item.price * item.quantity)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-1.5 text-xs">
+            <div className="flex justify-between">
+              <span className="text-gray-500 dark:text-gray-400">Subtotal</span>
+              <span className="font-medium text-gray-900 dark:text-white">{formatCurrency(cartTotal)}</span>
+            </div>
+            {discount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400">Diskon</span>
+                <span className="font-medium text-red-500">-{formatCurrency(discount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5 font-bold text-sm">
+              <span className="text-gray-900 dark:text-white">Total</span>
+              <span className="text-primary-600 dark:text-primary-400">{formatCurrency(finalTotal)}</span>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowQueueConfirmModal(false)}
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveQueue}
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              Simpan
+            </button>
+          </div>
         </div>
       </Modal>
     </motion.div>

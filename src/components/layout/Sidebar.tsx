@@ -10,7 +10,6 @@ import {
   ArrowPathIcon,
   Cog6ToothIcon,
   XMarkIcon,
-  BookOpenIcon,
   ClockIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
@@ -20,8 +19,7 @@ const navigation = [
   { name: 'POS / Kasir', to: '/pos', icon: ShoppingCartIcon },
   { name: 'Antrean Pesanan', to: '/queue', icon: QueueListIcon },
   { name: 'Produk', to: '/products', icon: CubeIcon },
-  { name: 'Bahan Baku', to: '/ingredients', icon: BeakerIcon },
-  { name: 'Resep', to: '/recipes', icon: BookOpenIcon },
+  { name: 'Stok', to: '/ingredients', icon: BeakerIcon },
   { name: 'Riwayat', to: '/history', icon: ClipboardDocumentListIcon },
   { name: 'Log Aktivitas', to: '/audit-log', icon: ClockIcon },
   { name: 'Tempat Sampah', to: '/trash', icon: TrashIcon },

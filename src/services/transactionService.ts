@@ -1,5 +1,4 @@
 import { db } from '../database';
-import { calculateHpp } from './hppEngine';
 import { generateInvoiceNumber, getTodayRange } from '../utils/format';
 
 export interface CartItem {
@@ -7,7 +6,6 @@ export interface CartItem {
   productName: string;
   price: number;
   quantity: number;
-  hpp: number;
   notes?: string;
 }
 
@@ -31,12 +29,12 @@ export async function generateQueueNumber(): Promise<string> {
     .where('createdAt')
     .between(start, end, true, true)
     .toArray();
-  
+
   const numbers = todayTransactions
     .map((t) => t.queueNumber)
     .filter((q): q is string => typeof q === 'string' && /^A\d{3}$/.test(q))
     .map((q) => parseInt(q.substring(1), 10));
-  
+
   const maxNumber = numbers.length > 0 ? Math.max(...numbers) : 0;
   const nextNumber = maxNumber + 1;
   return `A${nextNumber.toString().padStart(3, '0')}`;
@@ -53,17 +51,6 @@ export async function saveToQueue(payload: SaveQueuePayload): Promise<{ invoiceN
   const totalDiscount = totalAmount > 0 ? Math.min(discount, totalAmount) : 0;
   const finalAmount = totalAmount - totalDiscount;
 
-  // Calculate HPP per pcs for each item
-  let totalHpp = 0;
-  const itemsWithHpp = await Promise.all(
-    items.map(async (item) => {
-      const hppPerPcs = await calculateHpp(item.productId);
-      totalHpp += hppPerPcs * item.quantity;
-      return { ...item, hpp: hppPerPcs };
-    })
-  );
-
-  const totalProfit = finalAmount - totalHpp;
   let invoiceNumber = '';
   let queueNumber = '';
   let targetId = transactionId;
@@ -79,8 +66,6 @@ export async function saveToQueue(payload: SaveQueuePayload): Promise<{ invoiceN
 
     await db.transactions.update(targetId, {
       totalAmount: finalAmount,
-      totalHpp,
-      totalProfit,
       discount: totalDiscount,
       itemCount: items.length,
       status: 'queued',
@@ -97,8 +82,6 @@ export async function saveToQueue(payload: SaveQueuePayload): Promise<{ invoiceN
       invoiceNumber,
       queueNumber,
       totalAmount: finalAmount,
-      totalHpp,
-      totalProfit,
       discount: totalDiscount,
       paymentMethod: 'cash',
       paymentAmount: 0,
@@ -110,22 +93,20 @@ export async function saveToQueue(payload: SaveQueuePayload): Promise<{ invoiceN
   }
 
   // Save new items
-  for (const item of itemsWithHpp) {
+  for (const item of items) {
     await db.transactionItems.add({
       transactionId: targetId,
       productId: item.productId,
       productName: item.productName,
       quantity: item.quantity,
       price: item.price,
-      hpp: item.hpp,
-      profit: item.price - item.hpp,
       notes: item.notes,
     });
   }
 
   // Log audit trail
   await db.auditLogs.add({
-    action: 'QUEUE_TRANSACTION',
+    action: 'TAMBAH_ANTREAN',
     transactionId: targetId,
     invoiceNumber,
     timestamp: new Date(),
@@ -133,6 +114,85 @@ export async function saveToQueue(payload: SaveQueuePayload): Promise<{ invoiceN
   });
 
   return { invoiceNumber, queueNumber };
+}
+
+/**
+ * Deduct stock for a sold product — matches by productId.
+ * Runs inside the caller's db.transaction('rw', ...) block.
+ * Throws if no stock entry is linked to this product or stock is insufficient.
+ */
+async function deductStockForProduct(
+  productId: number,
+  productName: string,
+  quantity: number,
+  reference: string
+): Promise<void> {
+  const ingredient = await db.ingredients
+    .where('productId')
+    .equals(productId)
+    .first();
+
+  if (!ingredient || !ingredient.id) {
+    throw new Error(
+      `Stok untuk "${productName}" belum di-link. Buka halaman Stok dan hubungkan dengan produk ini.`
+    );
+  }
+
+  if (ingredient.stock < quantity) {
+    throw new Error(
+      `Stok "${productName}" tidak mencukupi. Sisa: ${ingredient.stock} ${ingredient.unit}, diperlukan: ${quantity}.`
+    );
+  }
+
+  const newStock = ingredient.stock - quantity;
+
+  await db.ingredients.update(ingredient.id, {
+    stock: newStock,
+    updatedAt: new Date(),
+  });
+
+  await db.stockMovements.add({
+    ingredientId: ingredient.id,
+    ingredientName: ingredient.name,
+    type: 'out',
+    quantity,
+    reference,
+    createdAt: new Date(),
+  });
+}
+
+/**
+ * Return stock for a voided transaction (reverse of deduction) — matches by productId.
+ * Must be called INSIDE a db.transaction('rw', ...) block.
+ */
+export async function returnStockForItems(
+  items: { productId: number; quantity: number }[],
+  reference: string
+): Promise<void> {
+  for (const item of items) {
+    const ingredient = await db.ingredients
+      .where('productId')
+      .equals(item.productId)
+      .first();
+
+    if (ingredient && ingredient.id) {
+      const newStock = ingredient.stock + item.quantity;
+
+      await db.ingredients.update(ingredient.id, {
+        stock: newStock,
+        updatedAt: new Date(),
+      });
+
+      await db.stockMovements.add({
+        ingredientId: ingredient.id,
+        ingredientName: ingredient.name,
+        type: 'in',
+        quantity: item.quantity,
+        reference,
+        createdAt: new Date(),
+      });
+    }
+  }
 }
 
 export async function processCheckout(payload: CheckoutPayload): Promise<{ invoiceNumber: string }> {
@@ -147,128 +207,96 @@ export async function processCheckout(payload: CheckoutPayload): Promise<{ invoi
   const finalAmount = totalAmount - totalDiscount;
   const changeAmount = paymentMethod === 'cash' ? Math.max(0, paymentAmount - finalAmount) : 0;
 
-  // Calculate HPP per pcs for each item
-  let totalHpp = 0;
-  const itemsWithHpp = await Promise.all(
-    items.map(async (item) => {
-      // calculateHpp now returns HPP per pcs
-      const hppPerPcs = await calculateHpp(item.productId);
-      totalHpp += hppPerPcs * item.quantity;
-      return { ...item, hpp: hppPerPcs };
-    })
-  );
+  // ── Atomic transaction: ALL operations succeed together or roll back together ──
+  return db.transaction(
+    'rw',
+    [db.transactions, db.transactionItems, db.ingredients, db.stockMovements, db.auditLogs],
+    async () => {
+      let invoiceNumber = '';
+      let finalTxId = transactionId;
 
-  const totalProfit = finalAmount - totalHpp;
-  let invoiceNumber = '';
-  let finalTxId = transactionId;
+      if (finalTxId) {
+        // Paying a queued transaction
+        const existing = await db.transactions.get(finalTxId);
+        if (!existing) {
+          throw new Error('Transaksi antrean tidak ditemukan');
+        }
+        invoiceNumber = existing.invoiceNumber;
 
-  if (finalTxId) {
-    // Paying a queued transaction
-    const existing = await db.transactions.get(finalTxId);
-    if (!existing) {
-      throw new Error('Transaksi antrean tidak ditemukan');
-    }
-    invoiceNumber = existing.invoiceNumber;
-
-    await db.transactions.update(finalTxId, {
-      totalAmount: finalAmount,
-      totalHpp,
-      totalProfit,
-      discount: totalDiscount,
-      paymentMethod,
-      paymentAmount,
-      changeAmount,
-      status: 'completed',
-      itemCount: items.length,
-      // Keep queueNumber and original createdAt
-    });
-
-    // Delete old items
-    await db.transactionItems.where('transactionId').equals(finalTxId).delete();
-  } else {
-    // Normal checkout
-    invoiceNumber = generateInvoiceNumber();
-    finalTxId = (await db.transactions.add({
-      invoiceNumber,
-      totalAmount: finalAmount,
-      totalHpp,
-      totalProfit,
-      discount: totalDiscount,
-      paymentMethod,
-      paymentAmount,
-      changeAmount,
-      status: 'completed',
-      itemCount: items.length,
-      createdAt: new Date(),
-    })) as number;
-  }
-
-  for (const item of itemsWithHpp) {
-    await db.transactionItems.add({
-      transactionId: finalTxId,
-      productId: item.productId,
-      productName: item.productName,
-      quantity: item.quantity,
-      price: item.price,
-      hpp: item.hpp,
-      profit: item.price - item.hpp,
-      notes: item.notes,
-    });
-
-    // Deduct ingredient stock based on recipe
-    const recipes = await db.recipes
-      .where('productId')
-      .equals(item.productId)
-      .toArray();
-
-    for (const recipe of recipes) {
-      const ingredient = await db.ingredients.get(recipe.ingredientId);
-      if (ingredient && ingredient.id) {
-        // recipe.quantity is amount per batch, we need per unit sold
-        // recipe.quantity is total for productionQuantity items
-        // so per item = recipe.quantity / productionQuantity
-        const perUnit = recipe.productionQuantity > 0
-          ? recipe.quantity / recipe.productionQuantity
-          : recipe.quantity;
-        const deductAmount = perUnit * item.quantity;
-        const newStock = Math.max(0, ingredient.stock - deductAmount);
-        await db.ingredients.update(ingredient.id, {
-          stock: newStock,
-          updatedAt: new Date(),
+        await db.transactions.update(finalTxId, {
+          totalAmount: finalAmount,
+          discount: totalDiscount,
+          paymentMethod,
+          paymentAmount,
+          changeAmount,
+          status: 'completed',
+          itemCount: items.length,
         });
 
-        await db.stockMovements.add({
-          ingredientId: ingredient.id,
-          ingredientName: ingredient.name,
-          type: 'out',
-          quantity: deductAmount,
-          reference: invoiceNumber,
+        // Delete old items
+        await db.transactionItems.where('transactionId').equals(finalTxId).delete();
+      } else {
+        // Normal checkout
+        invoiceNumber = generateInvoiceNumber();
+        finalTxId = (await db.transactions.add({
+          invoiceNumber,
+          totalAmount: finalAmount,
+          discount: totalDiscount,
+          paymentMethod,
+          paymentAmount,
+          changeAmount,
+          status: 'completed',
+          itemCount: items.length,
           createdAt: new Date(),
+        })) as number;
+      }
+
+      // Save items and deduct stock atomically
+      for (const item of items) {
+        await db.transactionItems.add({
+          transactionId: finalTxId,
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          price: item.price,
+          notes: item.notes,
+        });
+
+        // Deduct stock by productId — throws clear error if not linked or insufficient
+        await deductStockForProduct(item.productId, item.productName, item.quantity, invoiceNumber);
+
+        // Audit: stock deduction per item
+        await db.auditLogs.add({
+          action: 'AUTO_REDUCE_POS',
+          transactionId: finalTxId,
+          invoiceNumber,
+          timestamp: new Date(),
+          description: `Stok "${item.productName}" dikurangi ${item.quantity} (Invoice: ${invoiceNumber})`,
         });
       }
+
+      // Log audit: transaction created
+      if (transactionId) {
+        await db.auditLogs.add({
+          action: 'BAYAR_POS',
+          transactionId: finalTxId,
+          invoiceNumber,
+          timestamp: new Date(),
+          description: `Bayar antrean ${invoiceNumber}. Total: Rp${finalAmount.toLocaleString('id-ID')}`,
+        });
+      } else {
+        await db.auditLogs.add({
+          action: 'BAYAR_POS',
+          transactionId: finalTxId,
+          invoiceNumber,
+          timestamp: new Date(),
+          description: `Transaksi baru ${invoiceNumber}. Total: Rp${finalAmount.toLocaleString('id-ID')}`,
+        });
+      }
+
+      return { invoiceNumber };
     }
-  }
-
-  // Log audit
-  if (transactionId) {
-    await db.auditLogs.add({
-      action: 'PAY_QUEUED_TRANSACTION',
-      transactionId: finalTxId,
-      invoiceNumber,
-      timestamp: new Date(),
-      description: `Bayar pesanan antrean ${invoiceNumber}. Total: Rp${finalAmount.toLocaleString('id-ID')}`,
-    });
-  } else {
-    await db.auditLogs.add({
-      action: 'CREATE_TRANSACTION',
-      transactionId: finalTxId,
-      invoiceNumber,
-      timestamp: new Date(),
-      description: `Transaksi baru ${invoiceNumber}. Total: Rp${finalAmount.toLocaleString('id-ID')}`,
-    });
-  }
-
-  return { invoiceNumber };
+  );
 }
 
 export async function checkLowStockIngredients(): Promise<{ name: string; stock: number; unit: string }[]> {

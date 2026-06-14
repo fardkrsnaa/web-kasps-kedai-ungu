@@ -2,23 +2,23 @@ import Dexie, { type EntityTable } from 'dexie';
 import type {
   Product,
   Ingredient,
-  Recipe,
   Transaction,
   TransactionItem,
   StockMovement,
   AppSettings,
   AuditLog,
+  Category,
 } from '../types';
 
 class KedaiUnguDB extends Dexie {
   products!: EntityTable<Product, 'id'>;
   ingredients!: EntityTable<Ingredient, 'id'>;
-  recipes!: EntityTable<Recipe, 'id'>;
   transactions!: EntityTable<Transaction, 'id'>;
   transactionItems!: EntityTable<TransactionItem, 'id'>;
   stockMovements!: EntityTable<StockMovement, 'id'>;
   settings!: EntityTable<AppSettings, 'id'>;
   auditLogs!: EntityTable<AuditLog, 'id'>;
+  categories!: EntityTable<Category, 'id'>;
 
   constructor() {
     super('KedaiUnguDB');
@@ -81,11 +81,6 @@ class KedaiUnguDB extends Dexie {
           } catch { /* skip */ }
         }
       } catch { /* */ }
-
-      // auditLogs table was removed previously; version 4 re-adds it properly
-      try {
-        // no-op: table drop not possible in Dexie upgrade
-      } catch { /* */ }
     });
 
     this.version(3).stores({
@@ -96,7 +91,6 @@ class KedaiUnguDB extends Dexie {
       transactionItems: '++id, transactionId, productId',
       stockMovements: '++id, ingredientId, type, createdAt',
       settings: '++id',
-      // Note: auditLogs removed from schema but table may still exist in IndexedDB
     });
 
     this.version(4).stores({
@@ -108,6 +102,40 @@ class KedaiUnguDB extends Dexie {
       stockMovements: '++id, ingredientId, type, createdAt',
       settings: '++id',
       auditLogs: '++id, action, transactionId, invoiceNumber, timestamp',
+    });
+
+    // Version 5: Remove recipes table, HPP/profit fields
+    this.version(5).stores({
+      products: '++id, name, category, isActive',
+      ingredients: '++id, name, unit',
+      transactions: '++id, invoiceNumber, status, createdAt',
+      transactionItems: '++id, transactionId, productId',
+      stockMovements: '++id, ingredientId, type, createdAt',
+      settings: '++id',
+      auditLogs: '++id, action, transactionId, invoiceNumber, timestamp',
+    });
+
+    // Version 6: Add productId index for ingredients (POS stock deduction)
+    this.version(6).stores({
+      products: '++id, name, category, isActive',
+      ingredients: '++id, productId, name, unit',
+      transactions: '++id, invoiceNumber, status, createdAt',
+      transactionItems: '++id, transactionId, productId',
+      stockMovements: '++id, ingredientId, type, createdAt',
+      settings: '++id',
+      auditLogs: '++id, action, transactionId, invoiceNumber, timestamp',
+    });
+
+    // Version 7: Add categories table for user-managed categories
+    this.version(7).stores({
+      products: '++id, name, category, isActive',
+      ingredients: '++id, productId, name, unit',
+      transactions: '++id, invoiceNumber, status, createdAt',
+      transactionItems: '++id, transactionId, productId',
+      stockMovements: '++id, ingredientId, type, createdAt',
+      settings: '++id',
+      auditLogs: '++id, action, transactionId, invoiceNumber, timestamp',
+      categories: '++id, name',
     });
   }
 }
@@ -169,11 +197,47 @@ export async function initializeDatabase(): Promise<void> {
     }
   }
 
-  // Runtime migration for recipes
-  const recipes = await db.recipes.toArray();
-  for (const recipe of recipes) {
-    if (recipe.productionQuantity === undefined) {
-      await db.recipes.update(recipe.id!, { productionQuantity: 1 });
+  // Prepopulate default categories if empty
+  const categoryCount = await db.categories.count();
+  if (categoryCount === 0) {
+    const defaultCategories = ['Makanan', 'Minuman', 'Camilan', 'Lainnya'];
+    for (const name of defaultCategories) {
+      await db.categories.add({ name });
     }
+  }
+
+  // ── Deduplicate categories on startup ──────────────────────────────
+  const allCats = await db.categories.toArray();
+  const seen = new Map<string, number>(); // normalized name → first id to keep
+  const toDelete: number[] = [];
+
+  for (const cat of allCats) {
+    const key = cat.name.trim().toLowerCase();
+    if (cat.id === undefined) continue;
+    if (seen.has(key)) {
+      // Duplicate found — mark for deletion
+      toDelete.push(cat.id);
+      // Update products using this category name to the canonical version
+      const canonicalName = allCats.find(c => c.id === seen.get(key))?.name.trim() || cat.name.trim();
+      await db.products.where('category').equals(cat.name).modify({ category: canonicalName });
+    } else {
+      seen.set(key, cat.id);
+      // Trim whitespace from canonical entry
+      const trimmed = cat.name.trim();
+      if (trimmed !== cat.name) {
+        await db.categories.update(cat.id, { name: trimmed });
+        // Update products with the untrimmed version
+        await db.products.where('category').equals(cat.name).modify({ category: trimmed });
+      }
+    }
+  }
+
+  // Delete duplicates
+  for (const id of toDelete) {
+    await db.categories.delete(id);
+  }
+
+  if (toDelete.length > 0) {
+    console.log(`Cleaned up ${toDelete.length} duplicate categories`);
   }
 }

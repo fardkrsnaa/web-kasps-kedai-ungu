@@ -10,14 +10,13 @@ import type { Transaction, TransactionItem } from '../types';
 import { formatCurrency, formatDate, getTodayRange, getWeekRange, getMonthRange } from '../utils/format';
 import { exportToExcel, exportToPdf } from '../utils/export';
 import SalesChart from '../components/ui/SalesChart';
+import toast from 'react-hot-toast';
 
 type Period = 'daily' | 'weekly' | 'monthly';
 
 interface ReportData {
   transactions: Transaction[];
   totalOmzet: number;
-  totalProfit: number;
-  totalHpp: number;
   totalTransactions: number;
   avgTransaction: number;
 }
@@ -32,14 +31,11 @@ export default function ReportsPage() {
   const [data, setData] = useState<ReportData>({
     transactions: [],
     totalOmzet: 0,
-    totalProfit: 0,
-    totalHpp: 0,
     totalTransactions: 0,
     avgTransaction: 0,
   });
   const [chartLabels, setChartLabels] = useState<string[]>([]);
   const [chartOmzet, setChartOmzet] = useState<number[]>([]);
-  const [chartProfit, setChartProfit] = useState<number[]>([]);
   const [transactionsWithItems, setTransactionsWithItems] = useState<TransactionWithItems[]>([]);
 
   const loadReport = useCallback(async () => {
@@ -58,82 +54,71 @@ export default function ReportsPage() {
         .toArray();
 
       const totalOmzet = transactions.reduce((s, t) => s + t.totalAmount, 0);
-      const totalProfit = transactions.reduce((s, t) => s + t.totalProfit, 0);
-      const totalHpp = transactions.reduce((s, t) => s + t.totalHpp, 0);
       const totalTransactions = transactions.length;
       const avgTransaction = totalTransactions > 0 ? totalOmzet / totalTransactions : 0;
 
-      setData({ transactions, totalOmzet, totalProfit, totalHpp, totalTransactions, avgTransaction });
+      setData({ transactions, totalOmzet, totalTransactions, avgTransaction });
 
       // Load transaction items for each transaction
       const txIds = transactions.map((t) => t.id!).filter((id) => id !== undefined);
       const allItems = await db.transactionItems.where('transactionId').anyOf(txIds).toArray();
-      const itemsMap = new Map<number, TransactionItem[]>();
+
+      const txItemMap = new Map<number, TransactionItem[]>();
       for (const item of allItems) {
-        const existing = itemsMap.get(item.transactionId) || [];
-        existing.push(item);
-        itemsMap.set(item.transactionId, existing);
+        const list = txItemMap.get(item.transactionId) || [];
+        list.push(item);
+        txItemMap.set(item.transactionId, list);
       }
-      const txWithItems: TransactionWithItems[] = transactions.map((t) => ({
+
+      const txs: TransactionWithItems[] = transactions.map((t) => ({
         ...t,
-        items: itemsMap.get(t.id!) || [],
+        items: txItemMap.get(t.id!) || [],
       }));
-      setTransactionsWithItems(txWithItems);
+      setTransactionsWithItems(txs);
 
       // Build chart data
+      const labels: string[] = [];
+      const omzet: number[] = [];
+
       if (period === 'daily') {
-        const hourlyMap = new Map<string, { omzet: number; profit: number }>();
-        for (let h = 0; h < 24; h++) {
-          hourlyMap.set(`${h}:00`, { omzet: 0, profit: 0 });
+        // Group by hour (6am - 10pm)
+        for (let h = 6; h <= 22; h++) {
+          const hourLabel = `${h.toString().padStart(2, '0')}:00`;
+          labels.push(hourLabel);
+          const hourTotal = transactions
+            .filter((t) => new Date(t.createdAt).getHours() === h)
+            .reduce((s, t) => s + t.totalAmount, 0);
+          omzet.push(hourTotal);
         }
-        for (const t of transactions) {
-          const d = new Date(t.createdAt);
-          const hour = `${d.getHours()}:00`;
-          const existing = hourlyMap.get(hour);
-          if (existing) {
-            existing.omzet += t.totalAmount;
-            existing.profit += t.totalProfit;
-          }
-        }
-        setChartLabels(Array.from(hourlyMap.keys()));
-        setChartOmzet(Array.from(hourlyMap.values()).map((v) => v.omzet));
-        setChartProfit(Array.from(hourlyMap.values()).map((v) => v.profit));
       } else if (period === 'weekly') {
-        const dayMap = new Map<string, { omzet: number; profit: number }>();
-        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-        days.forEach((d) => dayMap.set(d, { omzet: 0, profit: 0 }));
-        for (const t of transactions) {
-          const d = new Date(t.createdAt);
-          const day = days[d.getDay()] ?? '';
-          const existing = dayMap.get(day);
-          if (existing) {
-            existing.omzet += t.totalAmount;
-            existing.profit += t.totalProfit;
-          }
+        const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const dayLabel = dayNames[d.getDay()]!;
+          labels.push(dayLabel);
+          const dayTotal = transactions
+            .filter((t) => {
+              const td = new Date(t.createdAt);
+              return td.getDate() === d.getDate() && td.getMonth() === d.getMonth() && td.getFullYear() === d.getFullYear();
+            })
+            .reduce((s, t) => s + t.totalAmount, 0);
+          omzet.push(dayTotal);
         }
-        setChartLabels(days);
-        setChartOmzet(days.map((d) => dayMap.get(d)?.omzet ?? 0));
-        setChartProfit(days.map((d) => dayMap.get(d)?.profit ?? 0));
       } else {
-        const dateMap = new Map<string, { omzet: number; profit: number }>();
-        const now = new Date();
-        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        for (let i = 1; i <= daysInMonth; i++) {
-          dateMap.set(`${i}`, { omzet: 0, profit: 0 });
+        // Monthly - group by date
+        const daysInMonth = new Date(range.start.getFullYear(), range.start.getMonth() + 1, 0).getDate();
+        for (let d = 1; d <= daysInMonth; d++) {
+          labels.push(`${d}`);
+          const dayTotal = transactions
+            .filter((t) => new Date(t.createdAt).getDate() === d)
+            .reduce((s, t) => s + t.totalAmount, 0);
+          omzet.push(dayTotal);
         }
-        for (const t of transactions) {
-          const d = new Date(t.createdAt);
-          const key = `${d.getDate()}`;
-          const existing = dateMap.get(key);
-          if (existing) {
-            existing.omzet += t.totalAmount;
-            existing.profit += t.totalProfit;
-          }
-        }
-        setChartLabels(Array.from(dateMap.keys()));
-        setChartOmzet(Array.from(dateMap.values()).map((v) => v.omzet));
-        setChartProfit(Array.from(dateMap.values()).map((v) => v.profit));
       }
+
+      setChartLabels(labels);
+      setChartOmzet(omzet);
     } catch (error) {
       console.error('Failed to load report:', error);
     } finally {
@@ -145,183 +130,195 @@ export default function ReportsPage() {
     loadReport();
   }, [loadReport]);
 
-  const handleExportExcel = () => {
-    const rows: any[] = [];
-    for (const t of transactionsWithItems) {
-      if (t.items && t.items.length > 0) {
-        for (const item of t.items) {
-          rows.push({
+  const handleExportExcel = async () => {
+    try {
+      await exportToExcel(
+          transactionsWithItems.map(t => ({
             Invoice: t.invoiceNumber,
             Tanggal: formatDate(t.createdAt),
-            Status: t.status === 'completed' ? 'Completed' : 'Void',
-            Produk: item.productName,
-            Qty: item.quantity,
-            Harga: `Rp${item.price.toLocaleString('id-ID')}`,
-            Subtotal: `Rp${(item.price * item.quantity).toLocaleString('id-ID')}`,
-          });
-        }
-        // Add total row per transaction
-        rows.push({
-          Invoice: '',
-          Tanggal: '',
-          Status: '',
-          Produk: `TOTAL ${t.invoiceNumber}`,
-          Qty: t.itemCount,
-          Harga: '',
-          Subtotal: `Rp${t.totalAmount.toLocaleString('id-ID')}`,
-        });
-      } else {
-        rows.push({
-          Invoice: t.invoiceNumber,
-          Tanggal: formatDate(t.createdAt),
-          Status: t.status === 'completed' ? 'Completed' : 'Void',
-          Produk: '-',
-          Qty: t.itemCount,
-          Harga: '',
-          Subtotal: `Rp${t.totalAmount.toLocaleString('id-ID')}`,
-        });
-      }
+            'Total (Rp)': t.totalAmount,
+            'Metode Bayar': t.paymentMethod === 'cash' ? 'Tunai' : t.paymentMethod === 'qris' ? 'QRIS' : 'Transfer',
+            'Jumlah Item': t.itemCount || 0,
+          })),
+          `Laporan_${period}_${new Date().toISOString().split('T')[0]}`
+        );
+      toast.success('Excel berhasil diunduh');
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal export Excel');
     }
-
-    const periodLabel = period === 'daily' ? 'Harian' : period === 'weekly' ? 'Mingguan' : 'Bulanan';
-    exportToExcel(rows, `Laporan_${periodLabel}_${new Date().toISOString().slice(0, 10)}`);
   };
 
-  const handleExportPdf = () => {
-    const periodLabel = period === 'daily' ? 'Hari Ini' : period === 'weekly' ? 'Minggu Ini' : 'Bulan Ini';
-    exportToPdf('report-content', `Laporan ${periodLabel}`);
+  const handleExportPdf = async () => {
+    try {
+      await exportToPdf('report-content', `Laporan_${period}_${new Date().toISOString().split('T')[0]}`);
+      toast.success('PDF berhasil diunduh');
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal export PDF');
+    }
   };
-
-  const periodLabel = period === 'daily' ? 'Hari Ini' : period === 'weekly' ? 'Minggu Ini' : 'Bulan Ini';
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
+    <motion.div id="report-content" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Laporan</h1>
         <div className="flex gap-2">
-          <button onClick={handleExportExcel} disabled={data.transactions.length === 0}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
-            <DocumentArrowDownIcon className="w-4 h-4" /> Excel
-          </button>
-          <button onClick={handleExportPdf} disabled={data.transactions.length === 0}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
-            <PrinterIcon className="w-4 h-4" /> PDF
-          </button>
+          {transactionsWithItems.length > 0 && (
+            <>
+              <button
+                onClick={handleExportExcel}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <DocumentArrowDownIcon className="w-4 h-4" />
+                Excel
+              </button>
+              <button
+                onClick={handleExportPdf}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <PrinterIcon className="w-4 h-4" />
+                PDF
+              </button>
+            </>
+          )}
         </div>
       </div>
 
+      {/* Period Filter */}
       <div className="flex gap-2 mb-6">
-        {(['daily', 'weekly', 'monthly'] as const).map((p) => (
-          <button key={p} onClick={() => setPeriod(p)}
+        {(['daily', 'weekly', 'monthly'] as Period[]).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              period === p ? 'bg-primary-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800'
-            }`}>
+              period === p
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
             {p === 'daily' ? 'Harian' : p === 'weekly' ? 'Mingguan' : 'Bulanan'}
           </button>
         ))}
       </div>
 
-      {loading ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0 }}
+          className="p-5 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800"
+        >
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Omzet</p>
+          <p className="text-xl font-bold text-gray-900 dark:text-white">
+            {loading ? <span className="inline-block w-24 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" /> : formatCurrency(data.totalOmzet)}
+          </p>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="p-5 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800"
+        >
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Transaksi</p>
+          <p className="text-xl font-bold text-gray-900 dark:text-white">
+            {loading ? <span className="inline-block w-16 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" /> : data.totalTransactions}
+          </p>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="p-5 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800"
+        >
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Rata-rata Transaksi</p>
+          <p className="text-xl font-bold text-gray-900 dark:text-white">
+            {loading ? <span className="inline-block w-20 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" /> : formatCurrency(data.avgTransaction)}
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Chart */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.3 }}
+        className="p-5 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 mb-6"
+      >
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Grafik Penjualan</h3>
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <SalesChart labels={chartLabels} omzetData={chartOmzet} />
+        )}
+      </motion.div>
+
+      {/* Transactions Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.4 }}
+        className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden"
+      >
+        <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Daftar Transaksi</h3>
+        </div>
+        {loading ? (
+          <div className="p-5 space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-24 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse" />
+              <div key={i} className="h-12 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
             ))}
           </div>
-          <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse" />
-        </div>
-      ) : (
-        <div id="report-content">
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            <div className="p-4 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Omzet {periodLabel}</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(data.totalOmzet)}</p>
-            </div>
-            <div className="p-4 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Profit</p>
-              <p className="text-lg font-bold text-green-600">{formatCurrency(data.totalProfit)}</p>
-            </div>
-            <div className="p-4 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">HPP</p>
-              <p className="text-lg font-bold text-orange-600">{formatCurrency(data.totalHpp)}</p>
-            </div>
-            <div className="p-4 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Transaksi</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">{data.totalTransactions}</p>
-            </div>
-            <div className="p-4 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Rata-rata</p>
-              <p className="text-lg font-bold text-blue-600">{formatCurrency(data.avgTransaction)}</p>
-            </div>
+        ) : transactionsWithItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
+            <DocumentChartBarIcon className="w-16 h-16 mb-4 opacity-50" />
+            <p className="text-sm">Belum ada transaksi</p>
           </div>
-
-          {/* Chart - with explicit ID for PDF export */}
-          <div className="p-5 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 mb-6">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Grafik Penjualan {periodLabel}</h3>
-            <SalesChart labels={chartLabels} omzetData={chartOmzet} profitData={chartProfit} />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-800 text-xs">
+                  <th className="text-left p-3 font-medium text-gray-500 dark:text-gray-400">Invoice</th>
+                  <th className="text-left p-3 font-medium text-gray-500 dark:text-gray-400">Tanggal</th>
+                  <th className="text-left p-3 font-medium text-gray-500 dark:text-gray-400">Produk</th>
+                  <th className="text-right p-3 font-medium text-gray-500 dark:text-gray-400">Omzet</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactionsWithItems.map((t) => (
+                  <tr key={t.id} className="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td className="p-3 font-medium text-gray-900 dark:text-white">{t.invoiceNumber}</td>
+                    <td className="p-3 text-gray-500 dark:text-gray-400">{formatDate(t.createdAt)}</td>
+                    <td className="p-3">
+                      <div className="text-gray-700 dark:text-gray-300 text-xs">
+                        {t.items && t.items.length > 0 ? (
+                          t.items.slice(0, 3).map((item) => (
+                            <span key={item.id} className="block">{item.productName} x{item.quantity}</span>
+                          ))
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                        {t.items && t.items.length > 3 && (
+                          <span className="text-gray-400">+{t.items.length - 3} lainnya</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3 text-right font-medium text-gray-900 dark:text-white">{formatCurrency(t.totalAmount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-gray-200 dark:border-gray-700 font-medium">
+                  <td colSpan={3} className="p-3 text-right text-gray-700 dark:text-gray-300">Total Omzet</td>
+                  <td className="p-3 text-right text-gray-900 dark:text-white">{formatCurrency(data.totalOmzet)}</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
-
-          {transactionsWithItems.length > 0 ? (
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-800">
-                      <th className="text-left p-3 font-medium text-gray-500 dark:text-gray-400 text-xs uppercase">Invoice</th>
-                      <th className="text-left p-3 font-medium text-gray-500 dark:text-gray-400 text-xs uppercase">Waktu</th>
-                      <th className="text-left p-3 font-medium text-gray-500 dark:text-gray-400 text-xs uppercase">Daftar Produk</th>
-                      <th className="text-right p-3 font-medium text-gray-500 dark:text-gray-400 text-xs uppercase">Total</th>
-                      <th className="text-right p-3 font-medium text-gray-500 dark:text-gray-400 text-xs uppercase">HPP</th>
-                      <th className="text-right p-3 font-medium text-gray-500 dark:text-gray-400 text-xs uppercase">Profit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {transactionsWithItems.map((t) => (
-                      <tr key={t.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                        <td className="p-3 text-gray-900 dark:text-white font-medium">{t.invoiceNumber}</td>
-                        <td className="p-3 text-gray-500 dark:text-gray-400">{new Date(t.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</td>
-                        <td className="p-3 text-gray-700 dark:text-gray-300">
-                          {t.items && t.items.length > 0 ? (
-                            <div className="space-y-0.5">
-                              {t.items.map((item, i) => (
-                                <p key={i} className="text-xs">
-                                  {item.productName} x{item.quantity}
-                                </p>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="p-3 text-right text-gray-900 dark:text-white font-medium">{formatCurrency(t.totalAmount)}</td>
-                        <td className="p-3 text-right text-orange-600">{formatCurrency(t.totalHpp)}</td>
-                        <td className="p-3 text-right text-green-600 font-medium">{formatCurrency(t.totalProfit)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-gray-50 dark:bg-gray-800/50 font-bold">
-                      <td colSpan={3} className="p-3 text-gray-900 dark:text-white">Total</td>
-                      <td className="p-3 text-right text-gray-900 dark:text-white">{formatCurrency(data.totalOmzet)}</td>
-                      <td className="p-3 text-right text-orange-600">{formatCurrency(data.totalHpp)}</td>
-                      <td className="p-3 text-right text-green-600">{formatCurrency(data.totalProfit)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
-              <DocumentChartBarIcon className="w-16 h-16 mb-4 opacity-50" />
-              <p className="text-sm">Tidak ada transaksi {periodLabel}</p>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </motion.div>
     </motion.div>
   );
 }

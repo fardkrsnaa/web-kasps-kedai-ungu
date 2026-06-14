@@ -8,6 +8,8 @@ import {
   NoSymbolIcon,
   CheckCircleIcon,
   ArrowUturnLeftIcon,
+  ClockIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline';
 import { db } from '../database';
 import type { Transaction, TransactionItem, AuditLog } from '../types';
@@ -24,7 +26,7 @@ import Modal from '../components/ui/Modal';
 import toast from 'react-hot-toast';
 
 type FilterTime = 'all' | 'today' | 'week' | 'month';
-type FilterStatus = 'all' | 'completed' | 'deleted';
+type FilterStatus = 'all' | 'completed' | 'void' | 'deleted';
 
 const productEmoji = (name: string) => {
   const n = name.toLowerCase();
@@ -108,9 +110,12 @@ export default function HistoryPage() {
     let result = transactions;
 
     if (filterStatus !== 'all') {
-      result = result.filter(t => t.status === filterStatus);
+      if (filterStatus === 'void') {
+        result = result.filter(t => t.status === 'deleted');
+      } else {
+        result = result.filter(t => t.status === filterStatus);
+      }
     }
-
     if (filterTime !== 'all') {
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -304,12 +309,24 @@ export default function HistoryPage() {
 
   const auditActionBadge = (action: string) => {
     const config: Record<string, { color: string; icon: any; label: string }> = {
-      CREATE_TRANSACTION: { color: 'green', icon: CheckCircleIcon, label: 'Created' },
-      VOID_TRANSACTION: { color: 'red', icon: NoSymbolIcon, label: 'Void' },
-      RESTORE_TRANSACTION: { color: 'blue', icon: ArrowUturnLeftIcon, label: 'Restore' },
-      DELETE_TRANSACTION: { color: 'red', icon: TrashIcon, label: 'Deleted' },
-      STOCK_RETURN: { color: 'amber', icon: ArrowUturnLeftIcon, label: 'Stock +' },
-      STOCK_DEDUCTION: { color: 'amber', icon: ArrowUturnLeftIcon, label: 'Stock -' },
+      BAYAR_POS: { color: 'green', icon: CheckCircleIcon, label: 'Bayar' },
+      BATAL_POS: { color: 'red', icon: NoSymbolIcon, label: 'Batal' },
+      RESTORE_POS: { color: 'blue', icon: ArrowUturnLeftIcon, label: 'Restore' },
+      DELETE_TRANSACTION: { color: 'red', icon: TrashIcon, label: 'Hapus' },
+      TAMBAH_STOK: { color: 'amber', icon: ArrowUturnLeftIcon, label: 'Stok +' },
+      TAMBAH_STOK_MANUAL: { color: 'amber', icon: ArrowUturnLeftIcon, label: 'Stok +' },
+      KURANGI_STOK: { color: 'orange', icon: ArrowUturnLeftIcon, label: 'Stok -' },
+      AUTO_REDUCE_POS: { color: 'orange', icon: ArrowUturnLeftIcon, label: 'Stok -' },
+      TAMBAH_PRODUK: { color: 'green', icon: CheckCircleIcon, label: 'Produk +' },
+      EDIT_PRODUK: { color: 'blue', icon: PencilSquareIcon, label: 'Edit' },
+      HAPUS_PRODUK: { color: 'red', icon: TrashIcon, label: 'Hapus' },
+      TAMBAH_KATEGORI: { color: 'purple', icon: CheckCircleIcon, label: 'Kategori +' },
+      HAPUS_KATEGORI: { color: 'red', icon: TrashIcon, label: 'Kategori -' },
+      EDIT_KATEGORI: { color: 'purple', icon: PencilSquareIcon, label: 'Edit Ktg' },
+      TAMBAH_ANTREAN: { color: 'indigo', icon: ClockIcon, label: 'Antrean' },
+      BUKA_ANTREAN: { color: 'cyan', icon: ClockIcon, label: 'Buka Antrean' },
+      HAPUS_ANTREAN: { color: 'red', icon: TrashIcon, label: 'Hapus Antrean' },
+      EDIT_STOK: { color: 'blue', icon: PencilSquareIcon, label: 'Edit Stok' },
     };
     const c = config[action] || { color: 'gray', icon: CheckCircleIcon, label: action };
     const Icon = c.icon;
@@ -354,7 +371,7 @@ export default function HistoryPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-4">
-        {(['all', 'completed', 'deleted'] as FilterStatus[]).map((s) => (
+          {(['all', 'completed', 'void', 'deleted'] as FilterStatus[]).map((s) => (
           <button
             key={s}
             onClick={() => setFilterStatus(s)}
@@ -364,7 +381,7 @@ export default function HistoryPage() {
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
-            {s === 'all' ? 'Semua' : s === 'completed' ? 'Completed' : 'Void'}
+            {s === 'all' ? 'Semua' : s === 'completed' ? 'Completed' : s === 'void' ? 'Void' : 'Tempat Sampah'}
           </button>
         ))}
         <span className="text-gray-300 dark:text-gray-600">|</span>
@@ -491,9 +508,6 @@ export default function HistoryPage() {
                       <p className="text-sm font-bold text-gray-900 dark:text-white">
                         {formatCurrency(t.totalAmount)}
                       </p>
-                      <p className={`text-xs ${t.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {t.totalProfit >= 0 ? '+' : ''}{formatCurrency(t.totalProfit)}
-                      </p>
                     </div>
                   </div>
                 </button>
@@ -605,14 +619,6 @@ export default function HistoryPage() {
                   <span className="font-medium text-red-500">-{formatCurrency(selectedTransaction.discount)}</span>
                 </div>
               )}
-              <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">HPP</span>
-                <span className="font-medium text-orange-600">{formatCurrency(selectedTransaction.totalHpp)}</span>
-              </div>
-              <div className="flex justify-between pt-1 border-t border-gray-200 dark:border-gray-700">
-                <span className="font-medium text-gray-900 dark:text-white">Profit</span>
-                <span className="font-bold text-green-600">{formatCurrency(selectedTransaction.totalProfit)}</span>
-              </div>
             </div>
 
             {/* Audit Trail */}

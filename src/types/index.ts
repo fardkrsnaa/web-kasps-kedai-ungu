@@ -11,24 +11,20 @@ export interface Product {
 
 export interface Ingredient {
   id?: number;
+  productId?: number; // Link to Product — used for POS stock deduction
   name: string;
+  /** @deprecated Legacy HPP field - kept for DB compatibility */
   purchasePrice: number;
+  /** @deprecated Legacy HPP field - kept for DB compatibility */
   purchaseCost: number;
+  /** @deprecated Legacy HPP field - kept for DB compatibility */
   purchaseQuantity: number;
+  /** @deprecated Legacy HPP field - kept for DB compatibility */
   unitCost: number;
   unit: string;
   stock: number;
   minStock: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Recipe {
-  id?: number;
-  productId: number;
-  ingredientId: number;
-  quantity: number;
-  productionQuantity: number;
+  note?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,8 +33,6 @@ export interface Transaction {
   id?: number;
   invoiceNumber: string;
   totalAmount: number;
-  totalHpp: number;
-  totalProfit: number;
   discount: number;
   paymentMethod: 'cash' | 'qris' | 'transfer';
   paymentAmount: number;
@@ -56,7 +50,6 @@ export interface Transaction {
   createdAt: Date;
 }
 
-
 export interface TransactionItem {
   id?: number;
   transactionId: number;
@@ -64,8 +57,6 @@ export interface TransactionItem {
   productName: string;
   quantity: number;
   price: number;
-  hpp: number;
-  profit: number;
   notes?: string;
 }
 
@@ -94,7 +85,6 @@ export interface Backup {
   exportedAt: string;
   products: Product[];
   ingredients: Ingredient[];
-  recipes: Recipe[];
   transactions: Transaction[];
   transactionItems: TransactionItem[];
   stockMovements: StockMovement[];
@@ -102,13 +92,14 @@ export interface Backup {
   auditLogs: AuditLog[];
 }
 
-export type ProductCategory = string;
+export interface Category {
+  id?: number;
+  name: string;
+}
 
 export interface DailySummary {
   date: string;
   omzet: number;
-  profit: number;
-  hpp: number;
   transactions: number;
 }
 
@@ -127,4 +118,4 @@ export interface AuditLog {
   description: string;
   beforeData?: string;
   afterData?: string;
-}
+}

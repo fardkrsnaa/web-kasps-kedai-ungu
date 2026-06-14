@@ -4,13 +4,11 @@ import Chart from 'chart.js/auto';
 interface SalesChartProps {
   labels: string[];
   omzetData: number[];
-  profitData: number[];
 }
 
 export default function SalesChart({
   labels,
   omzetData,
-  profitData,
 }: SalesChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
@@ -44,17 +42,6 @@ export default function SalesChart({
               tension: 0.4,
               fill: true,
               pointBackgroundColor: '#7c3aed',
-              pointRadius: 3,
-            },
-            {
-              label: 'Profit',
-              data: profitData,
-              backgroundColor: 'rgba(34, 197, 94, 0.2)',
-              borderColor: '#22c55e',
-              borderWidth: 2,
-              tension: 0.4,
-              fill: true,
-              pointBackgroundColor: '#22c55e',
               pointRadius: 3,
             },
           ],
@@ -126,7 +113,7 @@ export default function SalesChart({
         chartRef.current = null;
       }
     };
-  }, [labels, omzetData, profitData]);
+  }, [labels, omzetData]);
 
   if (labels.length === 0) {
     return (

@@ -5,21 +5,23 @@ import type { Transaction, TransactionItem } from '../types';
 
 interface DashboardData {
   todayOmzet: number;
-  todayProfit: number;
-  todayHpp: number;
   todayTransactions: number;
+  totalProducts: number;
+  totalStockItems: number;
+  totalStockQuantity: number;
   topProducts: { name: string; quantity: number; total: number }[];
-  weeklySales: { date: string; omzet: number; profit: number }[];
-  monthlySales: { date: string; omzet: number; profit: number }[];
+  weeklySales: { date: string; omzet: number }[];
+  monthlySales: { date: string; omzet: number }[];
   recentTransactions: (Transaction & { items: TransactionItem[] })[];
 }
 
 export function useDashboard() {
   const [data, setData] = useState<DashboardData>({
     todayOmzet: 0,
-    todayProfit: 0,
-    todayHpp: 0,
     todayTransactions: 0,
+    totalProducts: 0,
+    totalStockItems: 0,
+    totalStockQuantity: 0,
     topProducts: [],
     weeklySales: [],
     monthlySales: [],
@@ -42,8 +44,6 @@ export function useDashboard() {
         .toArray();
 
       const todayOmzet = todayTransactions.reduce((sum, t) => sum + t.totalAmount, 0);
-      const todayProfit = todayTransactions.reduce((sum, t) => sum + t.totalProfit, 0);
-      const todayHpp = todayTransactions.reduce((sum, t) => sum + t.totalHpp, 0);
 
       // Get recent transactions (last 5)
       const recentTransactions = await db.transactions
@@ -70,12 +70,12 @@ export function useDashboard() {
         .toArray();
 
       // Build weekly sales data
-      const weeklyMap = new Map<string, { omzet: number; profit: number }>();
+      const weeklyMap = new Map<string, { omzet: number }>();
       for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const key = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-        weeklyMap.set(key, { omzet: 0, profit: 0 });
+        weeklyMap.set(key, { omzet: 0 });
       }
       for (const t of weekTransactions) {
         const d = new Date(t.createdAt);
@@ -83,7 +83,6 @@ export function useDashboard() {
         const existing = weeklyMap.get(key);
         if (existing) {
           existing.omzet += t.totalAmount;
-          existing.profit += t.totalProfit;
         }
       }
       const weeklySales = Array.from(weeklyMap.entries()).map(([date, val]) => ({
@@ -98,11 +97,11 @@ export function useDashboard() {
         .and((t) => t.status === 'completed')
         .toArray();
 
-      const monthlyMap = new Map<string, { omzet: number; profit: number }>();
+      const monthlyMap = new Map<string, { omzet: number }>();
       const daysInMonth = new Date(month.start.getFullYear(), month.start.getMonth() + 1, 0).getDate();
       for (let i = 1; i <= daysInMonth; i++) {
         const key = `${i}`;
-        monthlyMap.set(key, { omzet: 0, profit: 0 });
+        monthlyMap.set(key, { omzet: 0 });
       }
       for (const t of monthTransactions) {
         const d = new Date(t.createdAt);
@@ -110,7 +109,6 @@ export function useDashboard() {
         const existing = monthlyMap.get(key);
         if (existing) {
           existing.omzet += t.totalAmount;
-          existing.profit += t.totalProfit;
         }
       }
       const monthlySales = Array.from(monthlyMap.entries()).map(([date, val]) => ({
@@ -147,11 +145,18 @@ export function useDashboard() {
         .sort((a, b) => b.total - a.total)
         .slice(0, 5);
 
+      // Get total product & stock counts
+      const allProducts = await db.products.where('isActive').equals(1).count();
+      const allIngredients = await db.ingredients.toArray();
+      const totalStockItems = allIngredients.length;
+      const totalStockQuantity = allIngredients.reduce((sum, ing) => sum + ing.stock, 0);
+
       setData({
         todayOmzet,
-        todayProfit,
-        todayHpp,
         todayTransactions: todayTransactions.length,
+        totalProducts: allProducts,
+        totalStockItems,
+        totalStockQuantity,
         topProducts,
         weeklySales,
         monthlySales,

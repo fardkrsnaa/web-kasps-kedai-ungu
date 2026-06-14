@@ -6,6 +6,7 @@ import {
   NoSymbolIcon,
   ArrowUturnLeftIcon,
   TrashIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline';
 import { db } from '../database';
 import type { AuditLog } from '../types';
@@ -33,18 +34,40 @@ export default function AuditLogPage() {
 
   const getActionConfig = (action: string) => {
     switch (action) {
-      case 'CREATE_TRANSACTION':
-        return { icon: CheckCircleIcon, color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900', label: 'CREATE', badge: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' };
-      case 'VOID_TRANSACTION':
-        return { icon: NoSymbolIcon, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900', label: 'VOID', badge: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' };
-      case 'RESTORE_TRANSACTION':
+      case 'BAYAR_POS':
+        return { icon: CheckCircleIcon, color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900', label: 'BAYAR POS', badge: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' };
+      case 'BATAL_POS':
+        return { icon: NoSymbolIcon, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900', label: 'BATAL', badge: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' };
+      case 'RESTORE_POS':
         return { icon: ArrowUturnLeftIcon, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900', label: 'RESTORE', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' };
       case 'DELETE_TRANSACTION':
-        return { icon: TrashIcon, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900', label: 'DELETE', badge: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' };
-      case 'STOCK_RETURN':
-        return { icon: ArrowUturnLeftIcon, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900', label: 'STOCK +', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' };
-      case 'STOCK_DEDUCTION':
-        return { icon: ArrowUturnLeftIcon, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900', label: 'STOCK -', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' };
+        return { icon: TrashIcon, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900', label: 'HAPUS', badge: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' };
+      case 'TAMBAH_STOK':
+      case 'TAMBAH_STOK_MANUAL':
+        return { icon: ArrowUturnLeftIcon, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900', label: 'STOK +', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' };
+      case 'KURANGI_STOK':
+      case 'AUTO_REDUCE_POS':
+        return { icon: ArrowUturnLeftIcon, color: 'text-orange-500', bg: 'bg-orange-100 dark:bg-orange-900', label: 'STOK -', badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' };
+      case 'TAMBAH_PRODUK':
+        return { icon: CheckCircleIcon, color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900', label: 'PRODUK +', badge: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' };
+      case 'EDIT_PRODUK':
+        return { icon: PencilSquareIcon, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900', label: 'EDIT PRODUK', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' };
+      case 'HAPUS_PRODUK':
+        return { icon: TrashIcon, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900', label: 'HAPUS PRODUK', badge: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' };
+      case 'TAMBAH_KATEGORI':
+        return { icon: CheckCircleIcon, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-900', label: 'KATEGORI +', badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' };
+      case 'HAPUS_KATEGORI':
+        return { icon: TrashIcon, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900', label: 'HAPUS KATEGORI', badge: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' };
+      case 'EDIT_KATEGORI':
+        return { icon: PencilSquareIcon, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-900', label: 'EDIT KATEGORI', badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' };
+      case 'TAMBAH_ANTREAN':
+        return { icon: ClockIcon, color: 'text-indigo-500', bg: 'bg-indigo-100 dark:bg-indigo-900', label: 'ANTREAN', badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' };
+      case 'BUKA_ANTREAN':
+        return { icon: ClockIcon, color: 'text-cyan-500', bg: 'bg-cyan-100 dark:bg-cyan-900', label: 'BUKA ANTREAN', badge: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300' };
+      case 'HAPUS_ANTREAN':
+        return { icon: TrashIcon, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900', label: 'HAPUS ANTREAN', badge: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' };
+      case 'EDIT_STOK':
+        return { icon: PencilSquareIcon, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900', label: 'EDIT STOK', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' };
       default:
         return { icon: ClockIcon, color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-900', label: action, badge: 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300' };
     }
@@ -114,7 +137,7 @@ export default function AuditLogPage() {
                             {formatDateTime(log.timestamp)}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-pre-line">
                           {log.description}
                         </p>
                       </div>

@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 import {
   CurrencyDollarIcon,
   ChartBarIcon,
-  DocumentTextIcon,
   ShoppingCartIcon,
-  ArrowTrendingUpIcon,
+  CubeIcon,
+  BeakerIcon,
 } from '@heroicons/react/24/outline';
 import { useDashboard } from '../hooks/useDashboard';
 import { formatCurrency, formatDateTime } from '../utils/format';
@@ -22,25 +22,25 @@ export default function DashboardPage() {
       label: 'Omzet Hari Ini',
       value: formatCurrency(data.todayOmzet),
       icon: CurrencyDollarIcon,
-      color: 'text-primary-600 bg-primary-50 dark:bg-primary-950 dark:text-primary-400',
-    },
-    {
-      label: 'Profit Hari Ini',
-      value: formatCurrency(data.todayProfit),
-      icon: ArrowTrendingUpIcon,
-      color: 'text-green-600 bg-green-50 dark:bg-green-950 dark:text-green-400',
-    },
-    {
-      label: 'HPP Hari Ini',
-      value: formatCurrency(data.todayHpp),
-      icon: DocumentTextIcon,
-      color: 'text-orange-600 bg-orange-50 dark:bg-orange-950 dark:text-orange-400',
+      color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950 dark:text-emerald-400',
     },
     {
       label: 'Transaksi Hari Ini',
       value: data.todayTransactions.toString(),
       icon: ShoppingCartIcon,
       color: 'text-blue-600 bg-blue-50 dark:bg-blue-950 dark:text-blue-400',
+    },
+    {
+      label: 'Total Produk',
+      value: data.totalProducts.toString(),
+      icon: CubeIcon,
+      color: 'text-purple-600 bg-purple-50 dark:bg-purple-950 dark:text-purple-400',
+    },
+    {
+      label: 'Total Item Stok',
+      value: `${data.totalStockItems} jenis (${data.totalStockQuantity} unit)`,
+      icon: BeakerIcon,
+      color: 'text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-400',
     },
   ];
 
@@ -53,11 +53,6 @@ export default function DashboardPage() {
     period === 'weekly'
       ? data.weeklySales.map((s) => s.omzet)
       : data.monthlySales.map((s) => s.omzet);
-
-  const chartProfit =
-    period === 'weekly'
-      ? data.weeklySales.map((s) => s.profit)
-      : data.monthlySales.map((s) => s.profit);
 
   return (
     <motion.div
@@ -78,7 +73,7 @@ export default function DashboardPage() {
             key={stat.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
+            transition={{ duration: 0.3, delay: index * 0.08 }}
             className="p-5 bg-white rounded-xl shadow-sm border border-gray-100 dark:bg-gray-900 dark:border-gray-800"
           >
             <div className="flex items-center justify-between mb-3">
@@ -91,7 +86,7 @@ export default function DashboardPage() {
             </p>
             <p className="text-xl font-bold text-gray-900 dark:text-white">
               {loading ? (
-                <span className="inline-block w-20 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                <span className="inline-block w-24 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
               ) : (
                 stat.value
               )}
@@ -145,7 +140,6 @@ export default function DashboardPage() {
             <SalesChart
               labels={chartLabels}
               omzetData={chartOmzet}
-              profitData={chartProfit}
             />
           )}
         </motion.div>
@@ -271,8 +265,8 @@ export default function DashboardPage() {
                   <p className="text-sm font-bold text-gray-900 dark:text-white">
                     {formatCurrency(tx.totalAmount)}
                   </p>
-                  <p className={`text-[11px] ${tx.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {tx.totalProfit >= 0 ? '+' : ''}{formatCurrency(tx.totalProfit)}
+                  <p className="text-[11px] text-gray-400">
+                    {formatCurrency(tx.totalAmount)}
                   </p>
                 </div>
               </div>
