@@ -488,7 +488,7 @@ export default function PosPage() {
                 setShowCheckout(true);
               }}
               disabled={cart.length === 0}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+              className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
             >
               <BanknotesIcon className="w-5 h-5" />
               Bayar ({cartItemCount} item)
@@ -558,7 +558,7 @@ export default function PosPage() {
                 <button
                   key={method}
                   onClick={() => setPaymentMethod(method)}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-lg border text-xs font-medium transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
                     paymentMethod === method
                       ? 'border-primary-500 bg-primary-50 dark:bg-primary-950 text-primary-700 dark:text-primary-300'
                       : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
@@ -595,29 +595,19 @@ export default function PosPage() {
             </div>
           )}
 
-          {/* Kembalian - Prominent Card */}
-          {paymentMethod === 'cash' && Number(paymentAmount) >= finalTotal && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-              className="p-4 bg-green-50 dark:bg-green-950 border-2 border-green-300 dark:border-green-700 rounded-xl"
-            >
-              <div className="text-center">
-                <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">
-                  Kembalian
-                </p>
-                <motion.p
-                  key={changeAmount}
-                  initial={{ scale: 1.1 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                  className="text-3xl font-bold text-green-600 dark:text-green-400 tabular-nums"
-                >
-                  {formatCurrency(changeAmount)}
-                </motion.p>
-              </div>
-            </motion.div>
+          {/* Kembalian - Read-only field below Jumlah Dibayar */}
+          {paymentMethod === 'cash' && (
+            <div>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Kembalian
+              </label>
+              <input
+                type="text"
+                readOnly
+                value={formatCurrency(changeAmount >= 0 ? changeAmount : 0)}
+                className="w-full px-4 py-3 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 rounded-lg text-lg font-bold text-green-600 dark:text-green-400 cursor-default"
+              />
+            </div>
           )}
 
           <div className="flex gap-3 pt-2">
@@ -630,7 +620,7 @@ export default function PosPage() {
             <button
               onClick={handleCheckout}
               disabled={processingPayment || (paymentMethod === 'cash' && Number(paymentAmount) < finalTotal)}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="btn-primary w-full text-sm"
             >
               {processingPayment ? (
                 <>

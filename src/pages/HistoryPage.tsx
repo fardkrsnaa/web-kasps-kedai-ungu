@@ -378,7 +378,7 @@ export default function HistoryPage() {
             className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
               filterStatus === s
                 ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                : 'bg-gray-100 dark:bg-[#111827] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
             {s === 'all' ? 'Semua' : s === 'completed' ? 'Completed' : s === 'void' ? 'Void' : 'Tempat Sampah'}
@@ -397,7 +397,7 @@ export default function HistoryPage() {
             className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
               filterTime === f.key
                 ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                : 'bg-gray-100 dark:bg-[#111827] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
             {f.label}
@@ -422,7 +422,7 @@ export default function HistoryPage() {
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
-          className="mb-4 p-3 bg-primary-50 dark:bg-primary-950 border border-primary-200 dark:border-primary-800 rounded-xl"
+          className="mb-4 p-3 bg-primary-50 dark:bg-primary-950 border border-primary-200 dark:border-primary-800 rounded-2xl"
         >
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
@@ -450,7 +450,7 @@ export default function HistoryPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-20 bg-gray-200 dark:bg-[#111827] rounded-2xl animate-pulse" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -465,7 +465,7 @@ export default function HistoryPage() {
               key={t.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`bg-white dark:bg-gray-900 rounded-xl shadow-sm border p-4 transition-colors ${
+              className={`bg-white dark:bg-gray-900 rounded-2xl shadow-sm border p-4 transition-colors ${
                 selectedIds.includes(t.id!)
                   ? 'border-primary-400 dark:border-primary-600'
                   : 'border-gray-100 dark:border-gray-800 hover:border-primary-200 dark:hover:border-primary-800'
@@ -542,7 +542,7 @@ export default function HistoryPage() {
       <Modal isOpen={showDetail} onClose={() => setShowDetail(false)} title="Detail Transaksi" size="lg">
         {selectedTransaction && (
           <div className="space-y-4">
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2 text-sm">
+            <div className="bg-gray-50 dark:bg-[#111827] rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500 dark:text-gray-400">Invoice</span>
                 <span className="font-medium text-gray-900 dark:text-white">{selectedTransaction.invoiceNumber}</span>
@@ -584,10 +584,10 @@ export default function HistoryPage() {
             {/* Items */}
             <div className="space-y-2">
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Daftar Produk</p>
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              <div className="border border-gray-200 dark:border-white/[0.08] rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-50 dark:bg-gray-800 text-xs">
+                    <tr className="bg-gray-50 dark:bg-[#111827] text-xs">
                       <th className="text-left p-2 font-medium text-gray-500 dark:text-gray-400">Produk</th>
                       <th className="text-center p-2 font-medium text-gray-500 dark:text-gray-400">Qty</th>
                       <th className="text-right p-2 font-medium text-gray-500 dark:text-gray-400">Harga</th>
@@ -596,7 +596,7 @@ export default function HistoryPage() {
                   </thead>
                   <tbody>
                     {detailItems.map((item, i) => (
-                      <tr key={i} className="border-t border-gray-100 dark:border-gray-700">
+                      <tr key={i} className="border-t border-gray-100 dark:border-white/[0.08]">
                         <td className="p-2 text-gray-900 dark:text-white">{item.productName}</td>
                         <td className="p-2 text-center text-gray-700 dark:text-gray-300">{item.quantity}</td>
                         <td className="p-2 text-right text-gray-700 dark:text-gray-300">{formatCurrency(item.price)}</td>
@@ -608,7 +608,7 @@ export default function HistoryPage() {
               </div>
             </div>
 
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2 text-sm">
+            <div className="border-t border-gray-200 dark:border-white/[0.08] pt-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500 dark:text-gray-400">Total</span>
                 <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(selectedTransaction.totalAmount)}</span>
@@ -623,7 +623,7 @@ export default function HistoryPage() {
 
             {/* Audit Trail */}
             {detailAuditLogs.length > 0 && (
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div className="border-t border-gray-200 dark:border-white/[0.08] pt-4">
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Audit Trail</p>
                 <div className="space-y-3">
                   {detailAuditLogs.map((log) => (
@@ -648,7 +648,7 @@ export default function HistoryPage() {
       {/* Void Modal */}
       <Modal isOpen={showVoidModal} onClose={() => setShowVoidModal(false)} title="Void Transaksi" size="sm">
         <div className="space-y-4">
-          <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-xl">
+          <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-2xl">
             <p className="text-sm text-red-700 dark:text-red-300">
               Invoice: <strong>{voidTarget?.invoiceNumber}</strong>
             </p>
@@ -658,10 +658,10 @@ export default function HistoryPage() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alasan (opsional)</label>
             <input type="text" value={voidReason} onChange={(e) => setVoidReason(e.target.value)}
               placeholder="Masukkan alasan void..."
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white" />
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white" />
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setShowVoidModal(false)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
+            <button onClick={() => setShowVoidModal(false)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
             <button onClick={confirmVoid} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors">Void Sekarang</button>
           </div>
         </div>
@@ -670,7 +670,7 @@ export default function HistoryPage() {
       {/* Restore Modal */}
       <Modal isOpen={showRestoreModal} onClose={() => setShowRestoreModal(false)} title="Restore Transaksi" size="sm">
         <div className="space-y-4">
-          <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-xl">
+          <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-2xl">
             <p className="text-sm text-blue-700 dark:text-blue-300">
               Restore transaksi <strong>{restoreTarget?.invoiceNumber}</strong>?
             </p>
@@ -680,10 +680,10 @@ export default function HistoryPage() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alasan (opsional)</label>
             <input type="text" value={restoreReason} onChange={(e) => setRestoreReason(e.target.value)}
               placeholder="Masukkan alasan restore..."
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white" />
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white" />
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setShowRestoreModal(false)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
+            <button onClick={() => setShowRestoreModal(false)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
             <button onClick={confirmRestore} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors">Restore</button>
           </div>
         </div>
@@ -692,14 +692,14 @@ export default function HistoryPage() {
       {/* Delete Modal */}
       <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Hapus Permanen" size="sm">
         <div className="space-y-4">
-          <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+          <div className="p-4 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-2xl">
             <p className="text-sm text-gray-700 dark:text-gray-300">
               Hapus permanen <strong>{deleteTarget?.invoiceNumber}</strong>?
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Data tidak dapat dikembalikan. Audit log tetap dipertahankan.</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setShowDeleteModal(false)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
+            <button onClick={() => setShowDeleteModal(false)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
             <button onClick={confirmDelete} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors">Hapus</button>
           </div>
         </div>
@@ -715,10 +715,10 @@ export default function HistoryPage() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alasan</label>
             <input type="text" value={bulkVoidReason} onChange={(e) => setBulkVoidReason(e.target.value)}
               placeholder="Bulk void"
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white" />
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white" />
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setShowBulkVoidModal(false)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg">Batal</button>
+            <button onClick={() => setShowBulkVoidModal(false)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg">Batal</button>
             <button onClick={confirmBulkVoid} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600">Void Sekarang</button>
           </div>
         </div>

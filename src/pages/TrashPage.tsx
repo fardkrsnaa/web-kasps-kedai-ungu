@@ -139,7 +139,7 @@ export default function TrashPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-20 bg-gray-200 dark:bg-[#111827] rounded-2xl animate-pulse" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -160,7 +160,7 @@ export default function TrashPage() {
                 key={t.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 opacity-80"
+                className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 opacity-80"
               >
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
@@ -223,7 +223,7 @@ export default function TrashPage() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alasan (opsional)</label>
             <input type="text" value={restoreReason} onChange={(e) => setRestoreReason(e.target.value)}
               placeholder="Alasan restore..."
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white" />
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white" />
           </div>
           <div className="flex gap-3">
             <button onClick={() => setShowRestoreModal(false)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg">Batal</button>
@@ -235,7 +235,7 @@ export default function TrashPage() {
       {/* Delete Modal */}
       <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Hapus Permanen" size="sm">
         <div className="space-y-4">
-          <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+          <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-white/[0.08] rounded-xl">
             <p className="text-sm text-gray-700 dark:text-gray-300">
               Hapus permanen <strong>{deleteTarget?.invoiceNumber}</strong>?
             </p>

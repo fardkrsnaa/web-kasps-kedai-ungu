@@ -8,12 +8,18 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  theme: 'light',
+  // Initialize: always default to 'light'. User must manually toggle to dark.
+  theme: (() => {
+    if (typeof window === 'undefined') return 'light';
+    const saved = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    if (saved) return saved;
+    return 'light'; // Always default to light, ignore system preference
+  })(),
 
   toggleTheme: async () => {
     const newTheme = get().theme === 'light' ? 'dark' : 'light';
     set({ theme: newTheme });
-    
+
     // Apply dark class to HTML element
     const root = document.documentElement;
     if (newTheme === 'dark') {
@@ -21,27 +27,39 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     } else {
       root.classList.remove('dark');
     }
-    
+
     // Save to localStorage for fast initial load
     localStorage.setItem('theme', newTheme);
-    
+
     // Save to IndexedDB for persistence
-    const settings = await db.settings.toArray();
-    if (settings[0]?.id !== undefined) {
-      await db.settings.update(settings[0].id, { theme: newTheme });
+    try {
+      const settings = await db.settings.toArray();
+      if (settings[0]?.id !== undefined) {
+        await db.settings.update(settings[0].id, { theme: newTheme });
+      }
+    } catch (e) {
+      console.warn('[Theme] Failed to save to IndexedDB:', e);
     }
   },
 
   loadTheme: async () => {
-    // Try localStorage first for instant load
+    // Priority: localStorage > IndexedDB > system preference
     const localTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    
-    // Then load from IndexedDB
-    const settings = await db.settings.toArray();
-    const savedTheme = settings[0]?.theme ?? localTheme ?? 'light';
-    
+
+    let savedTheme: 'light' | 'dark';
+    if (localTheme) {
+      savedTheme = localTheme;
+    } else {
+      try {
+        const settings = await db.settings.toArray();
+        savedTheme = settings[0]?.theme as 'light' | 'dark' ?? 'light';
+      } catch {
+        savedTheme = 'light'; // Default light, ignore system preference
+      }
+    }
+
     set({ theme: savedTheme });
-    
+
     // Apply dark class to HTML element
     const root = document.documentElement;
     if (savedTheme === 'dark') {
@@ -49,8 +67,8 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     } else {
       root.classList.remove('dark');
     }
-    
+
     // Sync localStorage
     localStorage.setItem('theme', savedTheme);
   },
-}));
+}));

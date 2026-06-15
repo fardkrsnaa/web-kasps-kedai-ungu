@@ -94,7 +94,7 @@ export default function AuditLogPage() {
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-16 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-16 bg-gray-200 dark:bg-[#111827] rounded-2xl animate-pulse" />
           ))}
         </div>
       ) : logs.length === 0 ? (
@@ -109,7 +109,7 @@ export default function AuditLogPage() {
               <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-3">
                 {date}
               </h3>
-              <div className="relative pl-6 border-l-2 border-gray-200 dark:border-gray-700 space-y-4">
+              <div className="relative pl-6 border-l-2 border-gray-200 dark:border-white/[0.08] space-y-4">
                 {dayLogs.map((log) => {
                   const config = getActionConfig(log.action);
                   const Icon = config.icon;
@@ -125,7 +125,7 @@ export default function AuditLogPage() {
                         <Icon className={`w-2.5 h-2.5 ${config.color}`} />
                       </div>
 
-                      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-3">
+                      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-3">
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full ${config.badge}`}>
                             {config.label}

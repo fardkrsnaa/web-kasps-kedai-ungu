@@ -449,7 +449,7 @@ export default function IngredientsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-[#111827] rounded-2xl p-1 w-fit">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -483,7 +483,7 @@ export default function IngredientsPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-20 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-20 bg-gray-200 dark:bg-[#111827] rounded-2xl animate-pulse" />
           ))}
         </div>
       ) : activeTab === 'stock' ? (
@@ -506,7 +506,7 @@ export default function IngredientsPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2, delay: index * 0.02 }}
-                  className={`bg-white dark:bg-gray-900 rounded-xl shadow-sm border p-4 ${
+                  className={`bg-white dark:bg-gray-900 rounded-2xl shadow-sm border p-4 ${
                     badge === 'low'
                       ? 'border-orange-200 dark:border-orange-900'
                       : badge === 'empty'
@@ -616,7 +616,7 @@ export default function IngredientsPage() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.15, delay: index * 0.005 }}
-                className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800"
+                className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800"
               >
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${getMovementBg(movement.type, movement.reference)}`}>
                   {getMovementIcon(movement.type, movement.reference)}
@@ -662,13 +662,13 @@ export default function IngredientsPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Stok</label>
             <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="Contoh: Kebab Mini Frozen" autoFocus />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Link ke Produk <span className="text-gray-400 font-normal">(opsional — untuk stok POS)</span></label>
             <select value={newProductId} onChange={(e) => setNewProductId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white">
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white">
               <option value="">— Tidak di-link —</option>
               {products.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
@@ -679,31 +679,31 @@ export default function IngredientsPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jumlah Masuk</label>
             <input type="number" value={newInitialStock} onChange={(e) => setNewInitialStock(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="0" min="0" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Satuan</label>
             <select value={newUnit} onChange={(e) => setNewUnit(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white">
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white">
               {UNIT_OPTIONS.map((unit) => (<option key={unit} value={unit}>{unit}</option>))}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stok Minimum</label>
             <input type="number" value={newMinStock} onChange={(e) => setNewMinStock(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="0" min="0" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Catatan (Opsional)</label>
             <input type="text" value={newNote} onChange={(e) => setNewNote(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="Catatan..." />
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => { setShowCreateModal(false); resetCreateForm(); }}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
             <button type="submit"
               className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">Simpan</button>
           </div>
@@ -721,13 +721,13 @@ export default function IngredientsPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Stok</label>
             <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="Contoh: Kebab Mini Frozen" autoFocus />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Link ke Produk <span className="text-gray-400 font-normal">(opsional — untuk stok POS)</span></label>
             <select value={editProductId ?? ''} onChange={(e) => setEditProductId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white">
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white">
               <option value="">— Tidak di-link —</option>
               {products.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
@@ -737,7 +737,7 @@ export default function IngredientsPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jumlah Stok Saat Ini</label>
-            <div className="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white font-medium cursor-default select-none">
+            <div className="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm text-gray-900 dark:text-white font-medium cursor-default select-none">
               {editTarget?.stock ?? '—'} {editTarget?.unit || ''}
             </div>
             <p className="mt-1 text-xs text-gray-400">Stok hanya bisa diubah melalui tombol +Tambah atau -Kurangi.</p>
@@ -745,25 +745,25 @@ export default function IngredientsPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Satuan</label>
             <select value={editUnit} onChange={(e) => setEditUnit(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white">
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white">
               {UNIT_OPTIONS.map((unit) => (<option key={unit} value={unit}>{unit}</option>))}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stok Minimum</label>
             <input type="number" value={editMinStock} onChange={(e) => setEditMinStock(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="0" min="0" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Catatan (Opsional)</label>
             <input type="text" value={editNote} onChange={(e) => setEditNote(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="Catatan..." />
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setEditTarget(null)}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
             <button type="submit"
               className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">Simpan</button>
           </div>
@@ -784,18 +784,18 @@ export default function IngredientsPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jumlah</label>
             <input type="number" value={addStockQty} onChange={(e) => setAddStockQty(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="0" min="1" autoFocus />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alasan</label>
             <input type="text" value={addStockReason} onChange={(e) => setAddStockReason(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="Contoh: Pembelian Supplier" />
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setAddStockTarget(null)}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
             <button type="submit"
               className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors">Tambah</button>
           </div>
@@ -816,18 +816,18 @@ export default function IngredientsPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jumlah</label>
             <input type="number" value={reduceStockQty} onChange={(e) => setReduceStockQty(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="0" min="1" max={reduceStockTarget?.stock || 0} autoFocus />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alasan</label>
             <input type="text" value={reduceStockReason} onChange={(e) => setReduceStockReason(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="Contoh: Barang Rusak" />
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={() => setReduceStockTarget(null)}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Batal</button>
             <button type="submit"
               className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors">Kurangi</button>
           </div>
@@ -848,7 +848,7 @@ export default function IngredientsPage() {
             </div>
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => setDeleteStockError('')}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                 Tutup
               </button>
             </div>
@@ -858,7 +858,7 @@ export default function IngredientsPage() {
             <p className="text-sm text-gray-700 dark:text-gray-300">
               Apakah Anda yakin ingin menghapus data stok ini?
             </p>
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+            <div className="bg-gray-50 dark:bg-[#111827] rounded-lg p-3">
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Nama Stok:</p>
               <p className="text-sm font-semibold text-gray-900 dark:text-white">{deleteStockTarget.name}</p>
             </div>
@@ -866,7 +866,7 @@ export default function IngredientsPage() {
             <p className="text-xs text-red-500">Tindakan ini tidak dapat dibatalkan.</p>
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => setDeleteStockTarget(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                 Batal
               </button>
               <button type="button" onClick={confirmDeleteStock}

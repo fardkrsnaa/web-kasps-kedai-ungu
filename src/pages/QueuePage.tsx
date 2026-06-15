@@ -143,7 +143,7 @@ export default function QueuePage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-48 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-48 bg-gray-200 dark:bg-[#111827] rounded-2xl animate-pulse" />
           ))}
         </div>
       ) : filteredQueue.length === 0 ? (
@@ -163,7 +163,7 @@ export default function QueuePage() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 flex flex-col justify-between hover:border-primary-300 dark:hover:border-primary-800 transition-colors"
+                className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 flex flex-col justify-between hover:border-primary-300 dark:hover:border-primary-800 transition-colors"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">

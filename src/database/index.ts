@@ -176,7 +176,7 @@ export async function initializeDatabase(): Promise<void> {
   const settingsCount = await db.settings.count();
   if (settingsCount === 0) {
     await db.settings.add({
-      storeName: 'Kedai Ungu',
+      storeName: '',
       address: '',
       theme: 'light',
       taxRate: 0,

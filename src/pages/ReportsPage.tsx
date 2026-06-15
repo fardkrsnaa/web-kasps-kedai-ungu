@@ -166,14 +166,14 @@ export default function ReportsPage() {
             <>
               <button
                 onClick={handleExportExcel}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <DocumentArrowDownIcon className="w-4 h-4" />
                 Excel
               </button>
               <button
                 onClick={handleExportPdf}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <PrinterIcon className="w-4 h-4" />
                 PDF
@@ -192,7 +192,7 @@ export default function ReportsPage() {
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               period === p
                 ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                : 'bg-gray-100 dark:bg-[#111827] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
             {p === 'daily' ? 'Harian' : p === 'weekly' ? 'Mingguan' : 'Bulanan'}
@@ -206,7 +206,7 @@ export default function ReportsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0 }}
-          className="p-5 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800"
+          className="p-5 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800"
         >
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Omzet</p>
           <p className="text-xl font-bold text-gray-900 dark:text-white">
@@ -217,7 +217,7 @@ export default function ReportsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="p-5 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800"
+          className="p-5 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800"
         >
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Transaksi</p>
           <p className="text-xl font-bold text-gray-900 dark:text-white">
@@ -228,7 +228,7 @@ export default function ReportsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="p-5 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800"
+          className="p-5 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800"
         >
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Rata-rata Transaksi</p>
           <p className="text-xl font-bold text-gray-900 dark:text-white">
@@ -242,7 +242,7 @@ export default function ReportsPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.3 }}
-        className="p-5 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 mb-6"
+        className="p-5 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 mb-6"
       >
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Grafik Penjualan</h3>
         {loading ? (
@@ -250,7 +250,9 @@ export default function ReportsPage() {
             <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <SalesChart labels={chartLabels} omzetData={chartOmzet} />
+          <div className="h-72">
+            <SalesChart labels={chartLabels} omzetData={chartOmzet} />
+          </div>
         )}
       </motion.div>
 
@@ -259,7 +261,7 @@ export default function ReportsPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.4 }}
-        className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden"
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden"
       >
         <div className="p-5 border-b border-gray-100 dark:border-gray-800">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Daftar Transaksi</h3>
@@ -279,7 +281,7 @@ export default function ReportsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-800 text-xs">
+                <tr className="bg-gray-50 dark:bg-[#111827] text-xs">
                   <th className="text-left p-3 font-medium text-gray-500 dark:text-gray-400">Invoice</th>
                   <th className="text-left p-3 font-medium text-gray-500 dark:text-gray-400">Tanggal</th>
                   <th className="text-left p-3 font-medium text-gray-500 dark:text-gray-400">Produk</th>
@@ -310,7 +312,7 @@ export default function ReportsPage() {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t border-gray-200 dark:border-gray-700 font-medium">
+                <tr className="border-t border-gray-200 dark:border-white/[0.08] font-medium">
                   <td colSpan={3} className="p-3 text-right text-gray-700 dark:text-gray-300">Total Omzet</td>
                   <td className="p-3 text-right text-gray-900 dark:text-white">{formatCurrency(data.totalOmzet)}</td>
                 </tr>

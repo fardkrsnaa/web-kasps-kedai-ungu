@@ -1,0 +1,9 @@
+{
+  "announcement": {
+    "enabled": true,
+    "id": "update-v2.1.0",
+    "title": "📢 Update Terbaru!",
+    "message": "Aplikasi Kasir Kedai Ungu telah diperbarui ke versi 2.1.0 dengan berbagai perbaikan dan peningkatan fitur.",
+    "type": "info"
+  }
+}

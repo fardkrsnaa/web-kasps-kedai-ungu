@@ -375,7 +375,7 @@ export default function ProductsPage() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowManageCatsModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-[#111827] text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
           >
             Kelola Kategori
           </button>
@@ -407,7 +407,7 @@ export default function ProductsPage() {
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="h-32 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse"
+              className="h-32 bg-gray-200 dark:bg-[#111827] rounded-xl animate-pulse"
             />
           ))}
         </div>
@@ -463,7 +463,7 @@ export default function ProductsPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => openEditModal(product)}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 >
                   <PencilSquareIcon className="w-4 h-4" />
                   Edit
@@ -498,7 +498,7 @@ export default function ProductsPage() {
               type="text"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="Nama produk"
               autoFocus
             />
@@ -512,7 +512,7 @@ export default function ProductsPage() {
               type="number"
               value={formPrice}
               onChange={(e) => setFormPrice(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="0"
               min="0"
             />
@@ -531,7 +531,7 @@ export default function ProductsPage() {
                   setFormCategory(e.target.value);
                 }
               }}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
             >
               <option value="">Pilih kategori</option>
               {categoryOptions.map((cat) => (
@@ -550,7 +550,7 @@ export default function ProductsPage() {
                 setShowModal(false);
                 resetForm();
               }}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               Batal
             </button>
@@ -594,7 +594,7 @@ export default function ProductsPage() {
                         type="text"
                         value={editingCatName}
                         onChange={(e) => setEditingCatName(e.target.value)}
-                        className="flex-1 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm dark:text-white"
+                        className="flex-1 px-2.5 py-1.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm dark:text-white"
                         autoFocus
                       />
                       <button
@@ -606,7 +606,7 @@ export default function ProductsPage() {
                       <button
                         type="button"
                         onClick={() => setEditingCategory(null)}
-                        className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-750"
+                        className="px-3 py-1.5 bg-gray-100 dark:bg-[#111827] text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-750"
                       >
                         Batal
                       </button>
@@ -641,7 +641,7 @@ export default function ProductsPage() {
           <div className="pt-2 flex justify-end">
             <button
               onClick={() => setShowManageCatsModal(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               Tutup
             </button>
@@ -668,7 +668,7 @@ export default function ProductsPage() {
               type="text"
               value={newCatName}
               onChange={(e) => setNewCatName(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
               placeholder="Contoh: Desert, Minuman, dll."
               autoFocus
             />
@@ -681,7 +681,7 @@ export default function ProductsPage() {
                 setShowAddCatModal(false);
                 setNewCatName('');
               }}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               Batal
             </button>
@@ -706,7 +706,7 @@ export default function ProductsPage() {
           <p className="text-sm text-gray-700 dark:text-gray-300">
             Apakah Anda yakin ingin menghapus kategori ini?
           </p>
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+          <div className="bg-gray-50 dark:bg-[#111827] rounded-lg p-3">
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Nama Kategori:</p>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">{deleteCatTarget?.name}</p>
           </div>
@@ -715,7 +715,7 @@ export default function ProductsPage() {
             <button
               type="button"
               onClick={() => setDeleteCatTarget(null)}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               Batal
             </button>
@@ -746,7 +746,7 @@ export default function ProductsPage() {
               <button
                 type="button"
                 onClick={() => setDeleteErrorMessage('')}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
                 Tutup
               </button>
@@ -757,7 +757,7 @@ export default function ProductsPage() {
             <p className="text-sm text-gray-700 dark:text-gray-300">
               Apakah Anda yakin ingin menghapus produk ini?
             </p>
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+            <div className="bg-gray-50 dark:bg-[#111827] rounded-lg p-3">
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Nama Produk:</p>
               <p className="text-sm font-semibold text-gray-900 dark:text-white">{deleteTarget.name}</p>
             </div>
@@ -766,7 +766,7 @@ export default function ProductsPage() {
               <button
                 type="button"
                 onClick={() => setDeleteTarget(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
                 Batal
               </button>

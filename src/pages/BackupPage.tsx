@@ -189,7 +189,7 @@ export default function BackupPage() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800"
+          className="p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800"
         >
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-lg bg-primary-50 dark:bg-primary-950">
@@ -291,7 +291,7 @@ export default function BackupPage() {
       {/* ── Backup Confirmation Modal ── */}
       <Modal isOpen={showBackupModal} onClose={() => setShowBackupModal(false)} title="Backup Data" size="sm">
         <div className="space-y-4">
-          <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+          <div className="p-4 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-xl">
             <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
               Anda akan membuat file backup seluruh data aplikasi.
             </p>
@@ -310,7 +310,7 @@ export default function BackupPage() {
           <div className="flex gap-3">
             <button
               onClick={() => setShowBackupModal(false)}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               Batal
             </button>
@@ -328,7 +328,7 @@ export default function BackupPage() {
       <Modal isOpen={showRestorePreviewModal} onClose={() => setShowRestorePreviewModal(false)} title="Preview Data Backup" size="md">
         <div className="space-y-4">
           {/* Backup info cards */}
-          <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl space-y-3">
+          <div className="p-4 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-xl space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Nama File</p>
@@ -393,7 +393,7 @@ export default function BackupPage() {
                 setShowRestorePreviewModal(false);
                 setPendingRestore(null);
               }}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               Batal
             </button>
@@ -438,7 +438,7 @@ export default function BackupPage() {
           </div>
           <button
             onClick={() => setShowRestoreSuccessModal(false)}
-            className="w-full px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="w-full px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           >
             Tutup
           </button>
@@ -458,7 +458,7 @@ export default function BackupPage() {
           </div>
           <button
             onClick={() => setShowRestoreErrorModal(false)}
-            className="w-full px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="w-full px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           >
             Tutup
           </button>

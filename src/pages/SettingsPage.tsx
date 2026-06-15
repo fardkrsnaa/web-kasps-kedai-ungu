@@ -154,7 +154,7 @@ export default function SettingsPage() {
       const current = settings[0];
       if (current?.id !== undefined) {
         await db.settings.update(current.id, {
-          storeName: storeName.trim() || 'Kedai Ungu',
+          storeName: storeName.trim(),
           address: address.trim(),
         });
       }
@@ -203,7 +203,7 @@ export default function SettingsPage() {
 
       <div className="space-y-6">
         {/* ── Informasi Toko ── */}
-        <div className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
+        <div className="p-6 bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-gray-100/80 dark:border-white/[0.08]">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Informasi Toko
           </h2>
@@ -235,7 +235,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
             >
               <CheckCircleIcon className="w-4 h-4" />
               {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
@@ -244,7 +244,7 @@ export default function SettingsPage() {
         </div>
 
         {/* ── Tema Tampilan ── */}
-        <div className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
+        <div className="p-6 bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-gray-100/80 dark:border-white/[0.08]">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Tema Tampilan
           </h2>
@@ -268,21 +268,19 @@ export default function SettingsPage() {
             </div>
             <button
               onClick={toggleTheme}
-              className={`relative w-12 h-6 rounded-full transition-colors ${
-                theme === 'dark' ? 'bg-primary-600' : 'bg-gray-300'
-              }`}
+              className={`relative w-12 h-6 rounded-full transition-colors ${theme === 'dark' ? 'bg-primary-600' : 'bg-gray-300'
+                }`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
-                  theme === 'dark' ? 'translate-x-6' : 'translate-x-0'
-                }`}
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${theme === 'dark' ? 'translate-x-6' : 'translate-x-0'
+                  }`}
               />
             </button>
           </div>
         </div>
 
         {/* ── Informasi Aplikasi ── */}
-        <div className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
+        <div className="p-6 bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-gray-100/80 dark:border-white/[0.08]">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <InformationCircleIcon className="w-5 h-5 text-primary-600" />
             Informasi Aplikasi
@@ -294,7 +292,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500 dark:text-gray-400">Versi</span>
-              <span className="font-medium text-gray-900 dark:text-white">1.0.0 — Beta</span>
+              <span className="font-medium text-gray-900 dark:text-white">2.1.0 — Beta</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500 dark:text-gray-400">Database</span>
@@ -317,7 +315,7 @@ export default function SettingsPage() {
                 <strong>Website ini diinisiasi dan dikembangkan oleh:</strong>
               </p>
               <p className="font-medium text-primary-700 dark:text-primary-400">
-                Farid Krsna (@fardkrsna_)
+                Farid Krisna (@fardkrsna_)
               </p>
               <p>
                 Dikembangkan dengan bantuan teknologi Artificial Intelligence (AI) sebagai partner
@@ -355,7 +353,7 @@ export default function SettingsPage() {
         </div>
 
         {/* ── Panduan Penggunaan ── */}
-        <div className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
+        <div className="p-6 bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-gray-100/80 dark:border-white/[0.08]">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <DocumentTextIcon className="w-5 h-5 text-primary-600" />
             Panduan Penggunaan Website
@@ -377,9 +375,8 @@ export default function SettingsPage() {
                     {item.title}
                   </span>
                   <ChevronDownIcon
-                    className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-                      expandedGuide === index ? 'rotate-180' : ''
-                    }`}
+                    className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${expandedGuide === index ? 'rotate-180' : ''
+                      }`}
                   />
                 </button>
                 <motion.div
@@ -410,7 +407,7 @@ export default function SettingsPage() {
         </div>
 
         {/* ── Penutup ── */}
-        <div className="p-6 bg-gradient-to-br from-primary-50 to-primary-100/50 dark:from-primary-950/30 dark:to-primary-900/20 rounded-xl border border-primary-200 dark:border-primary-800 text-center">
+        <div className="p-6 bg-gradient-to-br from-primary-50 to-primary-100/50 dark:from-primary-950/30 dark:to-primary-900/20 rounded-2xl border border-primary-200 dark:border-primary-800 text-center">
           <p className="text-sm text-primary-800 dark:text-primary-300 leading-relaxed">
             Terima kasih telah menggunakan <strong>Kasir Kedai Ungu POS System</strong>.
             Dukungan, saran, dan laporan dari pengguna sangat berarti untuk pengembangan aplikasi

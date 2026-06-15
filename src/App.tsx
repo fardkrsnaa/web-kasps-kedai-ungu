@@ -3,6 +3,8 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './routes';
 import { initializeDatabase } from './database';
 import { useThemeStore } from './stores/useThemeStore';
+import AnnouncementPopup from './components/ui/AnnouncementPopup';
+
 
 export default function App() {
   const { theme, loadTheme } = useThemeStore();
@@ -67,5 +69,10 @@ export default function App() {
     );
   }
 
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <AnnouncementPopup />
+      <RouterProvider router={router} />
+    </>
+  );
 }
