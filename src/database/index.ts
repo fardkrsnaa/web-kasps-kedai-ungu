@@ -8,6 +8,7 @@ import type {
   AppSettings,
   AuditLog,
   Category,
+  PackageDeal,
 } from '../types';
 
 class KedaiUnguDB extends Dexie {
@@ -19,6 +20,7 @@ class KedaiUnguDB extends Dexie {
   settings!: EntityTable<AppSettings, 'id'>;
   auditLogs!: EntityTable<AuditLog, 'id'>;
   categories!: EntityTable<Category, 'id'>;
+  packageDeals!: EntityTable<PackageDeal, 'id'>;
 
   constructor() {
     super('KedaiUnguDB');
@@ -136,6 +138,63 @@ class KedaiUnguDB extends Dexie {
       settings: '++id',
       auditLogs: '++id, action, transactionId, invoiceNumber, timestamp',
       categories: '++id, name',
+    });
+
+    // Version 8: Add packageDeals table (include ALL existing stores + the new one)
+    this.version(8).stores({
+      products: '++id, name, category, isActive',
+      ingredients: '++id, productId, name, unit',
+      transactions: '++id, invoiceNumber, status, createdAt',
+      transactionItems: '++id, transactionId, productId',
+      stockMovements: '++id, ingredientId, type, createdAt',
+      settings: '++id',
+      auditLogs: '++id, action, transactionId, invoiceNumber, timestamp',
+      categories: '++id, name',
+      packageDeals: '++id, name, isActive',
+    });
+
+    // Fix: bump to v9 to force recreate packageDeals if v8 upgrade was broken
+    this.version(9).stores({
+      products: '++id, name, category, isActive',
+      ingredients: '++id, productId, name, unit',
+      transactions: '++id, invoiceNumber, status, createdAt',
+      transactionItems: '++id, transactionId, productId',
+      stockMovements: '++id, ingredientId, type, createdAt',
+      settings: '++id',
+      auditLogs: '++id, action, transactionId, invoiceNumber, timestamp',
+      categories: '++id, name',
+      packageDeals: '++id, name, isActive',
+    });
+
+    // Clean v10: force rebuild all stores fresh
+    this.version(10).stores({
+      products: '++id, name, category, isActive',
+      ingredients: '++id, productId, name, unit',
+      transactions: '++id, invoiceNumber, status, createdAt',
+      transactionItems: '++id, transactionId, productId',
+      stockMovements: '++id, ingredientId, type, createdAt',
+      settings: '++id',
+      auditLogs: '++id, action, transactionId, invoiceNumber, timestamp',
+      categories: '++id, name',
+      packageDeals: '++id, name, isActive',
+    });
+
+    // Version 11: Force physical creation of all stores
+    // (v8->v9->v10 had identical packageDeals schema so Dexie
+    //  did not recreate the store if the v8 upgrade failed).
+    // Adding 'createdAt' index to packageDeals is a safe schema
+    // change — if the store exists, Dexie just adds the index
+    // (no data loss); if missing, Dexie creates the store.
+    this.version(11).stores({
+      products: '++id, name, category, isActive',
+      ingredients: '++id, productId, name, unit',
+      transactions: '++id, invoiceNumber, status, createdAt',
+      transactionItems: '++id, transactionId, productId',
+      stockMovements: '++id, ingredientId, type, createdAt',
+      settings: '++id',
+      auditLogs: '++id, action, transactionId, invoiceNumber, timestamp',
+      categories: '++id, name',
+      packageDeals: '++id, name, isActive, createdAt',
     });
   }
 }

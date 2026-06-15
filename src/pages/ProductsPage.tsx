@@ -8,9 +8,10 @@ import {
   MagnifyingGlassIcon,
   CheckCircleIcon,
   XCircleIcon,
+  GiftIcon,
 } from '@heroicons/react/24/outline';
 import { db } from '../database';
-import type { Product, Category } from '../types';
+import type { Product, Category, PackageDeal, PackageDealItem } from '../types';
 import { formatCurrency } from '../utils/format';
 import Modal from '../components/ui/Modal';
 import toast from 'react-hot-toast';
@@ -42,6 +43,14 @@ export default function ProductsPage() {
 
   // Category delete modal state
   const [deleteCatTarget, setDeleteCatTarget] = useState<Category | null>(null);
+
+  // Package deal state
+  const [packageDeals, setPackageDeals] = useState<PackageDeal[]>([]);
+  const [showPackageModal, setShowPackageModal] = useState(false);
+  const [editingPackage, setEditingPackage] = useState<PackageDeal | null>(null);
+  const [pkgFormName, setPkgFormName] = useState('');
+  const [pkgFormPrice, setPkgFormPrice] = useState('');
+  const [pkgFormItems, setPkgFormItems] = useState<PackageDealItem[]>([]);
 
   // Computed unique category list: merge DB categories + defaults, deduplicated
   const categoryOptions = useMemo(() => {
@@ -92,10 +101,20 @@ export default function ProductsPage() {
     }
   }, []);
 
+  const loadPackageDeals = useCallback(async () => {
+    try {
+      const data = await db.packageDeals.toArray();
+      setPackageDeals(data.reverse());
+    } catch (error) {
+      console.error('Failed to load package deals:', error);
+    }
+  }, []);
+
   useEffect(() => {
     loadProducts();
     loadCategories();
-  }, [loadProducts, loadCategories]);
+    loadPackageDeals();
+  }, [loadProducts, loadCategories, loadPackageDeals]);
 
   const resetForm = () => {
     setFormName('');
@@ -103,6 +122,13 @@ export default function ProductsPage() {
     setFormCategory('');
     setFormIsActive(1);
     setEditingProduct(null);
+  };
+
+  const resetPkgForm = () => {
+    setPkgFormName('');
+    setPkgFormPrice('');
+    setPkgFormItems([]);
+    setEditingPackage(null);
   };
 
   const openAddModal = () => {
@@ -117,6 +143,117 @@ export default function ProductsPage() {
     setFormCategory(product.category);
     setFormIsActive(product.isActive);
     setShowModal(true);
+  };
+
+  // ── Package Deal handlers ──
+
+  const openAddPackageModal = () => {
+    resetPkgForm();
+    setShowPackageModal(true);
+  };
+
+  const openEditPackageModal = (pkg: PackageDeal) => {
+    setEditingPackage(pkg);
+    setPkgFormName(pkg.name);
+    setPkgFormPrice(pkg.price.toString());
+    setPkgFormItems(JSON.parse(JSON.stringify(pkg.items))); // deep copy
+    setShowPackageModal(true);
+  };
+
+  const togglePackageItem = (product: Product) => {
+    setPkgFormItems((prev) => {
+      const existing = prev.find((i) => i.productId === product.id);
+      if (existing) {
+        return prev.filter((i) => i.productId !== product.id);
+      }
+      return [...prev, { productId: product.id as number, productName: product.name, quantity: 1 }];
+    });
+  };
+
+  const updatePackageItemQty = (productId: number, qty: number) => {
+    setPkgFormItems((prev) =>
+      prev.map((i) => (i.productId === productId ? { ...i, quantity: Math.max(1, qty) } : i))
+    );
+  };
+
+  const handleSavePackage = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!pkgFormName.trim()) {
+      toast.error('Nama paket harus diisi');
+      return;
+    }
+    const price = Number(pkgFormPrice);
+    if (price <= 0) {
+      toast.error('Harga paket harus lebih dari 0');
+      return;
+    }
+    if (pkgFormItems.length === 0) {
+      toast.error('Pilih minimal 1 produk untuk paket hemat');
+      return;
+    }
+
+    try {
+      if (editingPackage?.id) {
+        await db.packageDeals.update(editingPackage.id, {
+          name: pkgFormName.trim(),
+          price,
+          items: pkgFormItems,
+          updatedAt: new Date(),
+        });
+        await db.auditLogs.add({
+          action: 'EDIT_PAKET_HEMAT',
+          transactionId: 0,
+          invoiceNumber: '',
+          timestamp: new Date(),
+          description: `Edit paket hemat: ${editingPackage.name} -> ${pkgFormName.trim()}`,
+        });
+        toast.success('Paket hemat berhasil diperbarui');
+      } else {
+        await db.packageDeals.add({
+          name: pkgFormName.trim(),
+          price,
+          items: pkgFormItems,
+          isActive: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        await db.auditLogs.add({
+          action: 'TAMBAH_PAKET_HEMAT',
+          transactionId: 0,
+          invoiceNumber: '',
+          timestamp: new Date(),
+          description: `Tambah paket hemat: ${pkgFormName.trim()}`,
+        });
+        toast.success('Paket hemat berhasil ditambahkan');
+      }
+      setShowPackageModal(false);
+      resetPkgForm();
+      await loadPackageDeals();
+    } catch (error) {
+      console.error('Failed to save package deal:', error);
+      toast.error('Gagal menyimpan paket hemat');
+    }
+  };
+
+  const handleDeletePackage = async (pkg: PackageDeal) => {
+    if (!pkg.id) return;
+    try {
+      await db.packageDeals.delete(pkg.id);
+      await db.auditLogs.add({
+        action: 'HAPUS_PAKET_HEMAT',
+        transactionId: 0,
+        invoiceNumber: '',
+        timestamp: new Date(),
+        description: `Hapus paket hemat: ${pkg.name}`,
+        beforeData: JSON.stringify(pkg),
+      });
+      toast.success('Paket hemat berhasil dihapus');
+      await loadPackageDeals();
+    } catch (error) {
+      console.error('Failed to delete package deal:', error);
+      toast.error('Gagal menghapus paket hemat');
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -380,6 +517,13 @@ export default function ProductsPage() {
             Kelola Kategori
           </button>
           <button
+            onClick={openAddPackageModal}
+            className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium"
+          >
+            <GiftIcon className="w-4 h-4" />
+            Buat Paket Hemat
+          </button>
+          <button
             onClick={openAddModal}
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
           >
@@ -479,6 +623,211 @@ export default function ProductsPage() {
           ))}
         </div>
       )}
+
+      {/* ─── Paket Hemat Section ─── */}
+      <div className="mt-8 mb-4 flex items-center justify-between">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <GiftIcon className="w-5 h-5 text-amber-500" />
+          Paket Hemat
+        </h2>
+        <span className="text-xs text-gray-500 dark:text-gray-400">
+          {packageDeals.length} paket
+        </span>
+      </div>
+
+      {packageDeals.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-900 rounded-xl border border-dashed border-gray-200 dark:border-gray-800">
+          <GiftIcon className="w-12 h-12 mb-3 opacity-50" />
+          <p className="text-sm font-medium">Belum ada paket hemat</p>
+          <p className="text-xs mt-1">Gabungkan beberapa produk dengan harga spesial</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {packageDeals.map((pkg, index) => (
+            <motion.div
+              key={pkg.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, delay: index * 0.03 }}
+              className="bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 rounded-xl shadow-sm border border-amber-200 dark:border-amber-800/50 p-5"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
+                    <GiftIcon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900 dark:text-white text-sm">
+                      {pkg.name}
+                    </h3>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400">
+                      💰 Hemat
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* List component products */}
+              <div className="mb-3 space-y-1">
+                {pkg.items.map((item) => (
+                  <div key={item.productId} className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span className="truncate">{item.productName}</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300 ml-2">x{item.quantity}</span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-lg font-bold text-amber-600 dark:text-amber-400 mb-3">
+                {formatCurrency(pkg.price)}
+              </p>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => openEditPackageModal(pkg)}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-[#111827]/80 rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors"
+                >
+                  <PencilSquareIcon className="w-4 h-4" />
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDeletePackage(pkg)}
+                  className="flex items-center justify-center px-3 py-2 text-sm font-medium text-red-600 bg-red-50/80 dark:bg-red-950/50 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {/* ─── Modal: Buat/Edit Paket Hemat ─── */}
+      <Modal
+        isOpen={showPackageModal}
+        onClose={() => {
+          setShowPackageModal(false);
+          resetPkgForm();
+        }}
+        title={editingPackage ? 'Edit Paket Hemat' : 'Buat Paket Hemat'}
+        size="lg"
+      >
+        <form onSubmit={handleSavePackage} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Nama Paket
+            </label>
+            <input
+              type="text"
+              value={pkgFormName}
+              onChange={(e) => setPkgFormName(e.target.value)}
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              placeholder="Contoh: Paket Nasi Goreng + Es Teh"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Harga Paket (Rp)
+            </label>
+            <input
+              type="number"
+              value={pkgFormPrice}
+              onChange={(e) => setPkgFormPrice(e.target.value)}
+              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
+              placeholder="0"
+              min="0"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Pilih Produk
+            </label>
+            <div className="max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-100 dark:divide-gray-800">
+              {products.map((product) => {
+                const selected = pkgFormItems.find((i) => i.productId === product.id);
+                return (
+                  <label
+                    key={product.id}
+                    className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
+                      selected
+                        ? 'bg-primary-50 dark:bg-primary-900/20'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!!selected}
+                      onChange={() => togglePackageItem(product)}
+                      className="rounded text-primary-600 focus:ring-primary-500"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {product.name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatCurrency(product.price)}
+                      </p>
+                    </div>
+                    {selected && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            updatePackageItemQty(product.id as number, selected.quantity - 1);
+                          }}
+                          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500"
+                        >
+                          <span className="text-xs font-bold">−</span>
+                        </button>
+                        <span className="w-6 text-center text-sm font-medium text-gray-900 dark:text-white">
+                          {selected.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            updatePackageItemQty(product.id as number, selected.quantity + 1);
+                          }}
+                          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500"
+                        >
+                          <span className="text-xs font-bold">+</span>
+                        </button>
+                      </div>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+            {pkgFormItems.length > 0 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {pkgFormItems.length} produk dipilih
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowPackageModal(false);
+                resetPkgForm();
+              }}
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#111827] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors"
+            >
+              {editingPackage ? 'Simpan Paket' : 'Buat Paket'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Add/Edit Modal */}
       <Modal

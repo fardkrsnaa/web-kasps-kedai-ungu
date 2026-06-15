@@ -42,7 +42,6 @@ const statGradients: { from: string; to: string }[] = [
   { from: '#8B5CF6', to: '#A855F7' },
   { from: '#0EA5E9', to: '#38BDF8' },
   { from: '#10B981', to: '#34D399' },
-  { from: '#F59E0B', to: '#FBBF24' },
 ];
 
 const containerVariants = {
@@ -78,13 +77,10 @@ export default function DashboardPage() {
   const omzetCount = useCountUp(data.todayOmzet);
   const txCount = useCountUp(data.todayTransactions);
   const prodCount = useCountUp(data.totalProducts);
-  const invCount = useCountUp(data.totalStockItems);
-
   const stats: { label: string; value: string; raw: number; icon: typeof CurrencyDollarIcon; gradient: { from: string; to: string } }[] = [
     { label: 'Omset Hari Ini', value: formatCurrency(omzetCount), raw: data.todayOmzet, icon: CurrencyDollarIcon, gradient: statGradients[0]! },
     { label: 'Transaksi Hari Ini', value: txCount.toString(), raw: data.todayTransactions, icon: ShoppingCartIcon, gradient: statGradients[1]! },
     { label: 'Produk Aktif', value: prodCount.toString(), raw: data.totalProducts, icon: CubeIcon, gradient: statGradients[2]! },
-    { label: 'Nilai Inventaris', value: formatCurrency(invCount), raw: data.totalStockItems, icon: TrophyIcon, gradient: statGradients[3]! },
   ];
 
   const chartLabels = period === 'weekly'
@@ -121,7 +117,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* ═══════════════ SECTION 2: Stat Cards ═══════════════ */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
         {stats.map((stat) => (
           <motion.div
             key={stat.label}

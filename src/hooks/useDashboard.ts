@@ -148,7 +148,8 @@ export function useDashboard() {
       // Get total product & stock counts
       const allProducts = await db.products.where('isActive').equals(1).count();
       const allIngredients = await db.ingredients.toArray();
-      const totalStockItems = allIngredients.length;
+      // Nilai Inventaris = total value of all stock (qty × unit cost)
+      const totalStockItems = allIngredients.reduce((sum, ing) => sum + ing.stock * (ing.unitCost || 0), 0);
       const totalStockQuantity = allIngredients.reduce((sum, ing) => sum + ing.stock, 0);
 
       setData({

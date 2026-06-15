@@ -11,9 +11,10 @@ import {
   ArrowPathIcon,
   CheckCircleIcon,
   ClockIcon,
+  GiftIcon,
 } from '@heroicons/react/24/outline';
 import { db } from '../database';
-import type { Product } from '../types';
+import type { Product, PackageDeal } from '../types';
 import { formatCurrency } from '../utils/format';
 import { processCheckout, checkLowStockIngredients, type CartItem, saveToQueue } from '../services/transactionService';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -22,6 +23,7 @@ import toast from 'react-hot-toast';
 
 export default function PosPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [packageDeals, setPackageDeals] = useState<PackageDeal[]>([]);
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
@@ -122,9 +124,19 @@ export default function PosPage() {
     }
   }, []);
 
+  const loadPackageDeals = useCallback(async () => {
+    try {
+      const data = await db.packageDeals.toArray();
+      setPackageDeals(data);
+    } catch (error) {
+      console.error('Failed to load package deals:', error);
+    }
+  }, []);
+
   useEffect(() => {
     loadProducts();
-  }, [loadProducts]);
+    loadPackageDeals();
+  }, [loadProducts, loadPackageDeals]);
 
   const categories = [
     'Semua',
@@ -160,6 +172,32 @@ export default function PosPage() {
       ];
     });
     toast.success(`${product.name} ditambahkan`);
+  };
+
+  const addPackageToCart = (pkg: PackageDeal) => {
+    const pkgId = pkg.id ? -pkg.id : 0;
+    if (!pkgId) return;
+    setCart((prev) => {
+      const existing = prev.find((item) => item.productId === pkgId);
+      if (existing) {
+        return prev.map((item) =>
+          item.productId === pkgId
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [
+        ...prev,
+        {
+          productId: pkgId,
+          productName: `📦 ${pkg.name}`,
+          price: pkg.price,
+          quantity: 1,
+          notes: JSON.stringify(pkg.items.map((i) => ({ productId: i.productId, quantity: i.quantity }))),
+        },
+      ];
+    });
+    toast.success(`${pkg.name} ditambahkan`);
   };
 
   const updateQuantity = (productId: number, delta: number) => {
@@ -317,9 +355,9 @@ export default function PosPage() {
       className="flex flex-col lg:flex-row gap-4 h-full"
     >
       {/* Products Panel */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 space-y-6">
         {/* Search */}
-        <div className="relative mb-4">
+        <div className="relative">
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
@@ -331,7 +369,7 @@ export default function PosPage() {
         </div>
 
         {/* Category Filter */}
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 -mb-2">
           {categories.map((cat) => (
             <button
               key={cat}
@@ -347,49 +385,113 @@ export default function PosPage() {
           ))}
         </div>
 
-        {/* Products Grid */}
+        {/* ── Menu Standard ── */}
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-28 bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-[120px] bg-gray-200 dark:bg-gray-800 rounded-xl animate-pulse" />
             ))}
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
-            <ShoppingCartIcon className="w-16 h-16 mb-4 opacity-50" />
-            <p className="text-sm">Produk tidak ditemukan</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {filteredProducts.map((product, index) => (
-              <motion.button
-                key={product.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.15, delay: index * 0.02 }}
-                onClick={() => addToCart(product)}
-                whileTap={{ scale: 0.95 }}
-                className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-3 text-left hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900 flex items-center justify-center mb-2">
-                  <span className="text-primary-600 dark:text-primary-400 font-bold text-sm">
-                    {product.name.charAt(0).toUpperCase()}
+          <>
+            {filteredProducts.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-2 h-2 rounded-full bg-primary-500" />
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Menu Standard
+                  </h3>
+                  <span className="text-[11px] text-gray-400 dark:text-gray-500">
+                    {filteredProducts.length} produk
                   </span>
                 </div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {product.name}
-                </p>
-                <p className="text-sm font-bold text-primary-600 dark:text-primary-400 mt-1">
-                  {formatCurrency(product.price)}
-                </p>
-              </motion.button>
-            ))}
-          </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+                  {filteredProducts.map((product, index) => (
+                    <motion.button
+                      key={product.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.15, delay: index * 0.02 }}
+                      onClick={() => addToCart(product)}
+                      whileTap={{ scale: 0.95 }}
+                      className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-3 text-left hover:border-primary-300 dark:hover:border-primary-700 transition-colors flex flex-col h-[120px]"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900 flex items-center justify-center mb-2 flex-shrink-0">
+                        <span className="text-primary-600 dark:text-primary-400 font-bold text-sm">
+                          {product.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate line-clamp-2 leading-tight flex-1">
+                        {product.name}
+                      </p>
+                      <p className="text-sm font-bold text-primary-600 dark:text-primary-400 mt-auto pt-1">
+                        {formatCurrency(product.price)}
+                      </p>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Paket Hemat ── */}
+            {packageDeals.length > 0 && filteredProducts.length > 0 && (
+              <div className="border-t border-gray-100 dark:border-gray-800 pt-6" />
+            )}
+            {packageDeals.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <GiftIcon className="w-4 h-4 text-amber-500" />
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Paket Hemat
+                  </h3>
+                  <span className="text-[11px] text-gray-400 dark:text-gray-500">
+                    {packageDeals.length} paket
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+                  {packageDeals.map((pkg, index) => (
+                    <motion.button
+                      key={pkg.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.15, delay: index * 0.02 }}
+                      onClick={() => addPackageToCart(pkg)}
+                      whileTap={{ scale: 0.95 }}
+                      className="bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 rounded-xl shadow-sm border border-amber-200 dark:border-amber-800/50 p-3 text-left hover:border-amber-400 dark:hover:border-amber-600 transition-colors flex flex-col h-[120px]"
+                    >
+                      <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
+                          <GiftIcon className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400">
+                          Paket Hemat
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate line-clamp-2 leading-tight flex-1">
+                        {pkg.name}
+                      </p>
+                      <p className="text-sm font-bold text-amber-600 dark:text-amber-400 mt-auto pt-1">
+                        {formatCurrency(pkg.price)}
+                      </p>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Empty state when no products match and no package deals */}
+            {filteredProducts.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
+                <ShoppingCartIcon className="w-16 h-16 mb-4 opacity-50" />
+                <p className="text-sm">Produk tidak ditemukan</p>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {/* Cart Panel */}
-      <div className="w-full lg:w-96 flex flex-col bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
+      <div className="w-full lg:w-96 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] flex flex-col bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
         <div className="p-4 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">

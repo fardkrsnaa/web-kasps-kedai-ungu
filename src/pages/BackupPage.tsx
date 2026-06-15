@@ -42,7 +42,7 @@ export default function BackupPage() {
     setShowBackupModal(false);
     setLoading(true);
     try {
-      const [products, ingredients, transactions, transactionItems, stockMovements, settings, auditLogs] =
+      const [products, ingredients, transactions, transactionItems, stockMovements, settings, auditLogs, packageDeals] =
         await Promise.all([
           db.products.toArray(),
           db.ingredients.toArray(),
@@ -51,10 +51,11 @@ export default function BackupPage() {
           db.stockMovements.toArray(),
           db.settings.toArray(),
           db.auditLogs.toArray(),
+          db.packageDeals.toArray(),
         ]);
 
       const backup: Backup = {
-        version: '1.1.0',
+        version: '1.2.0',
         exportedAt: new Date().toISOString(),
         products,
         ingredients,
@@ -63,6 +64,7 @@ export default function BackupPage() {
         stockMovements,
         auditLogs,
         settings,
+        packageDeals,
       };
 
       const blob = new Blob([JSON.stringify(backup, null, 2)], {
@@ -140,6 +142,7 @@ export default function BackupPage() {
         db.stockMovements.clear(),
         db.settings.clear(),
         db.auditLogs.clear(),
+        db.packageDeals.clear(),
       ]);
 
       // Restore data
@@ -151,6 +154,7 @@ export default function BackupPage() {
         db.stockMovements.bulkAdd(backup.stockMovements),
         db.settings.bulkAdd(backup.settings),
         ...(backup.auditLogs ? [db.auditLogs.bulkAdd(backup.auditLogs)] : []),
+        ...(backup.packageDeals ? [db.packageDeals.bulkAdd(backup.packageDeals)] : []),
       ]);
 
       setShowRestoreSuccessModal(true);
@@ -275,7 +279,7 @@ export default function BackupPage() {
               Informasi Backup
             </h4>
             <ul className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-              <li>• Backup mencakup semua data: produk, stok, transaksi, dan log aktivitas.</li>
+              <li>• Backup mencakup semua data: produk, stok, transaksi, log aktivitas, dan paket hemat.</li>
               <li>• File backup dalam format JSON.</li>
               <li>• Restore akan menimpa semua data yang ada saat ini.</li>
               <li>• Pastikan Anda memiliki backup terbaru sebelum melakukan restore.</li>
@@ -299,7 +303,7 @@ export default function BackupPage() {
               Data yang akan dicadangkan:
             </p>
             <ul className="space-y-1.5">
-              {['Produk', 'Stok', 'Riwayat Transaksi', 'Log Aktivitas', 'Pengaturan'].map((item) => (
+              {['Produk', 'Stok', 'Riwayat Transaksi', 'Log Aktivitas', 'Pengaturan', 'Paket Hemat'].map((item) => (
                 <li key={item} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
                   {item}
@@ -370,6 +374,12 @@ export default function BackupPage() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  <strong>{pendingRestore?.backup.packageDeals?.length ?? 0}</strong> Paket Hemat
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-gray-500" />
                 <span className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>{pendingRestore?.backup.auditLogs?.length ?? 0}</strong> Log Aktivitas
@@ -426,7 +436,7 @@ export default function BackupPage() {
                   Data berhasil dipulihkan dari file backup.
                 </p>
                 <ul className="space-y-1">
-                  {['Produk dipulihkan', 'Stok dipulihkan', 'Transaksi dipulihkan', 'Log aktivitas dipulihkan'].map((item) => (
+                  {['Produk dipulihkan', 'Stok dipulihkan', 'Transaksi dipulihkan', 'Log aktivitas dipulihkan', 'Paket Hemat dipulihkan'].map((item) => (
                     <li key={item} className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
                       <CheckCircleIcon className="w-3.5 h-3.5" />
                       {item}

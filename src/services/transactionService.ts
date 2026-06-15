@@ -210,7 +210,7 @@ export async function processCheckout(payload: CheckoutPayload): Promise<{ invoi
   // ── Atomic transaction: ALL operations succeed together or roll back together ──
   return db.transaction(
     'rw',
-    [db.transactions, db.transactionItems, db.ingredients, db.stockMovements, db.auditLogs],
+    [db.transactions, db.transactionItems, db.ingredients, db.stockMovements, db.auditLogs, db.packageDeals],
     async () => {
       let invoiceNumber = '';
       let finalTxId = transactionId;
@@ -262,17 +262,45 @@ export async function processCheckout(payload: CheckoutPayload): Promise<{ invoi
           notes: item.notes,
         });
 
-        // Deduct stock by productId — throws clear error if not linked or insufficient
-        await deductStockForProduct(item.productId, item.productName, item.quantity, invoiceNumber);
+        if (item.productId < 0) {
+          // Package deal — expand into component items for stock deduction
+          const pkgId = Math.abs(item.productId);
+          const pkg = await db.packageDeals.get(pkgId);
+          if (!pkg) {
+            throw new Error(`Paket hemat tidak ditemukan (ID: ${pkgId})`);
+          }
+          for (const pkgItem of pkg.items) {
+            const componentQty = pkgItem.quantity * item.quantity;
+            await deductStockForProduct(pkgItem.productId, pkgItem.productName, componentQty, invoiceNumber);
 
-        // Audit: stock deduction per item
-        await db.auditLogs.add({
-          action: 'AUTO_REDUCE_POS',
-          transactionId: finalTxId,
-          invoiceNumber,
-          timestamp: new Date(),
-          description: `Stok "${item.productName}" dikurangi ${item.quantity} (Invoice: ${invoiceNumber})`,
-        });
+            await db.auditLogs.add({
+              action: 'AUTO_REDUCE_POS',
+              transactionId: finalTxId,
+              invoiceNumber,
+              timestamp: new Date(),
+              description: `Stok "${pkgItem.productName}" dikurangi ${componentQty} (Paket: ${pkg.name}, Invoice: ${invoiceNumber})`,
+            });
+          }
+
+          await db.auditLogs.add({
+            action: 'BAYAR_PAKET_HEMAT',
+            transactionId: finalTxId,
+            invoiceNumber,
+            timestamp: new Date(),
+            description: `Paket "${pkg.name}" terjual (${item.quantity}x). Harga: Rp${(item.price * item.quantity).toLocaleString('id-ID')}`,
+          });
+        } else {
+          // Regular product — deduct stock by productId
+          await deductStockForProduct(item.productId, item.productName, item.quantity, invoiceNumber);
+
+          await db.auditLogs.add({
+            action: 'AUTO_REDUCE_POS',
+            transactionId: finalTxId,
+            invoiceNumber,
+            timestamp: new Date(),
+            description: `Stok "${item.productName}" dikurangi ${item.quantity} (Invoice: ${invoiceNumber})`,
+          });
+        }
       }
 
       // Log audit: transaction created

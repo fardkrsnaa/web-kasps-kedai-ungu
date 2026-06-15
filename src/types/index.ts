@@ -90,6 +90,7 @@ export interface Backup {
   stockMovements: StockMovement[];
   settings: AppSettings[];
   auditLogs: AuditLog[];
+  packageDeals: PackageDeal[];
 }
 
 export interface Category {
@@ -118,4 +119,20 @@ export interface AuditLog {
   description: string;
   beforeData?: string;
   afterData?: string;
+}
+
+export interface PackageDealItem {
+  productId: number;
+  productName: string;
+  quantity: number;
+}
+
+export interface PackageDeal {
+  id?: number;
+  name: string;
+  price: number;
+  items: PackageDealItem[];
+  isActive: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
