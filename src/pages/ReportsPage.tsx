@@ -150,7 +150,42 @@ export default function ReportsPage() {
 
   const handleExportPdf = async () => {
     try {
-      await exportToPdf('report-content', `Laporan_${period}_${new Date().toISOString().split('T')[0]}`);
+      const periodLabels: Record<string, string> = {
+        daily: 'harian',
+        weekly: 'mingguan',
+        monthly: 'bulanan',
+      };
+      const dateStr = new Date().toISOString().split('T')[0];
+      const label = periodLabels[period] || period;
+      const filename = `laporan-${label}-${dateStr}`;
+
+      // Get store info for PDF header
+      const settings = await db.settings.toArray();
+      const storeName = settings[0]?.storeName || 'Kasir Kedai Ungu';
+      const storeAddress = settings[0]?.address || '';
+
+      // Prepare data for programmatic PDF
+      await exportToPdf({
+        period,
+        storeName,
+        storeAddress,
+        transactions: transactionsWithItems.map(t => ({
+          invoiceNumber: t.invoiceNumber,
+          createdAt: t.createdAt,
+          totalAmount: t.totalAmount,
+          paymentMethod: t.paymentMethod,
+          itemCount: t.itemCount || 0,
+          items: (t.items || []).map(item => ({
+            productName: item.productName,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+        })),
+        totalOmzet: data.totalOmzet,
+        totalTransactions: data.totalTransactions,
+        avgTransaction: data.avgTransaction,
+      }, filename);
+
       toast.success('PDF berhasil diunduh');
     } catch (error: any) {
       toast.error(error.message || 'Gagal export PDF');
@@ -230,7 +265,7 @@ export default function ReportsPage() {
           transition={{ duration: 0.3, delay: 0.2 }}
           className="p-5 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800"
         >
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Rata-rata Transaksi</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Rata-rata Belanja Pelanggan</p>
           <p className="text-xl font-bold text-gray-900 dark:text-white">
             {loading ? <span className="inline-block w-20 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" /> : formatCurrency(data.avgTransaction)}
           </p>
